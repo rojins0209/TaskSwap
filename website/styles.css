@@ -210,7 +210,7 @@
 
 html {
     scroll-behavior: smooth;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 body {
@@ -243,14 +243,14 @@ h1 {
 }
 
 h2 {
-    font-size: var(--font-3xl);
+    font-size: var(--font-4xl);
     text-align: center;
     margin-bottom: var(--spacing-xl);
     letter-spacing: -0.01em;
 }
 
 h3 {
-    font-size: var(--font-xl);
+    font-size: var(--font-2xl);
     font-weight: var(--weight-semibold);
 }
 
@@ -285,10 +285,11 @@ li {
 }
 
 section {
-    padding: var(--spacing-4xl) var(--spacing-xl);
-    max-width: 1400px;
+    padding: var(--spacing-5xl) var(--spacing-2xl);
+    max-width: 1600px;
     margin: 0 auto;
     position: relative;
+    width: 100%;
 }
 
 .section-header {
@@ -303,21 +304,30 @@ section {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
     background-color: var(--primary-container);
     color: var(--on-primary-container);
     border-radius: var(--radius-full);
-    margin-bottom: var(--spacing-md);
-    font-size: var(--font-xl);
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-2xl);
 }
 
 .section-subtitle {
-    font-size: var(--font-lg);
+    font-size: var(--font-xl);
     color: var(--on-surface-variant);
-    max-width: 600px;
+    max-width: 800px;
     margin-left: auto;
     margin-right: auto;
+}
+
+.section-divider {
+    height: 6px;
+    width: 100%;
+    background: var(--gradient-primary);
+    opacity: 0.1;
+    margin: var(--spacing-5xl) 0;
+    border-radius: var(--radius-full);
 }
 
 .gradient-text {
@@ -402,10 +412,11 @@ nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md) var(--spacing-xl);
-    max-width: 1400px;
+    padding: var(--spacing-md) var(--spacing-2xl);
+    max-width: 1600px;
     margin: 0 auto;
     height: 80px;
+    width: 100%;
 }
 
 .logo-container {
@@ -627,15 +638,16 @@ nav {
     align-items: center;
     justify-content: space-between;
     min-height: calc(100vh - 80px);
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: var(--spacing-xl);
-    gap: var(--spacing-3xl);
+    padding: var(--spacing-2xl);
+    gap: var(--spacing-4xl);
+    width: 100%;
 }
 
 .hero-content {
     flex: 1;
-    max-width: 600px;
+    max-width: 700px;
 }
 
 .hero-badge {
@@ -658,16 +670,16 @@ nav {
 }
 
 .hero h1 {
-    font-size: clamp(var(--font-3xl), 5vw, var(--font-5xl));
-    margin-bottom: var(--spacing-lg);
-    line-height: 1.2;
+    font-size: clamp(var(--font-4xl), 6vw, var(--font-6xl));
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.1;
 }
 
 .hero p {
-    font-size: var(--font-lg);
+    font-size: var(--font-xl);
     margin-bottom: var(--spacing-xl);
     color: var(--on-surface-variant);
-    max-width: 550px;
+    max-width: 650px;
     line-height: 1.6;
 }
 
@@ -830,16 +842,17 @@ nav {
 
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: var(--spacing-xl);
-    max-width: 1400px;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: var(--spacing-2xl);
+    max-width: 1600px;
     margin: 0 auto;
+    width: 100%;
 }
 
 .feature-card {
     background-color: var(--surface-container-low);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-2xl);
     transition: transform var(--transition-normal), box-shadow var(--transition-normal);
     border: 1px solid var(--outline-variant);
     position: relative;
@@ -979,16 +992,17 @@ nav {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: var(--spacing-2xl);
-    max-width: 1400px;
+    gap: var(--spacing-3xl);
+    max-width: 1600px;
     margin: 0 auto;
     perspective: 1000px;
+    width: 100%;
 }
 
 .showcase-item {
     flex: 1;
-    min-width: 300px;
-    max-width: 350px;
+    min-width: 350px;
+    max-width: 450px;
     text-align: center;
     margin-bottom: var(--spacing-xl);
     position: relative;
@@ -1077,14 +1091,15 @@ nav {
     justify-content: space-between;
     background: var(--gradient-primary);
     color: var(--on-primary);
-    padding: var(--spacing-4xl) var(--spacing-2xl);
+    padding: var(--spacing-5xl) var(--spacing-3xl);
     border-radius: var(--radius-2xl);
-    max-width: 1400px;
-    margin: var(--spacing-4xl) auto;
+    max-width: 1600px;
+    margin: var(--spacing-5xl) auto;
     position: relative;
     overflow: visible;
     box-shadow: 0 20px 40px var(--shadow-strong);
     z-index: 1;
+    width: 95%;
 }
 
 .download::before {
@@ -1102,7 +1117,7 @@ nav {
 
 .download-content {
     flex: 1;
-    padding-right: var(--spacing-2xl);
+    padding-right: var(--spacing-3xl);
     position: relative;
     z-index: 1;
 }
@@ -1110,16 +1125,16 @@ nav {
 .download h2 {
     color: var(--on-primary);
     text-align: left;
-    font-size: var(--font-3xl);
-    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-4xl);
+    margin-bottom: var(--spacing-xl);
     font-weight: var(--weight-bold);
 }
 
 .download p {
     margin-bottom: var(--spacing-xl);
-    font-size: var(--font-lg);
+    font-size: var(--font-xl);
     color: rgba(255, 255, 255, 0.9);
-    max-width: 500px;
+    max-width: 600px;
     line-height: 1.6;
 }
 
@@ -1238,11 +1253,11 @@ nav {
 }
 
 .aura-card {
-    max-width: 400px;
+    max-width: 500px;
     margin: 0 auto;
     background-color: var(--surface);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-2xl);
     box-shadow: 0 20px 40px var(--shadow-strong);
     border: 1px solid rgba(var(--primary-color-rgb), 0.15);
     position: relative;
@@ -1438,10 +1453,12 @@ footer::before {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto var(--spacing-2xl);
     position: relative;
     z-index: 1;
+    width: 100%;
+    padding: 0 var(--spacing-xl);
 }
 
 .footer-logo {
@@ -1559,12 +1576,13 @@ footer::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding-top: var(--spacing-lg);
+    padding: var(--spacing-lg) var(--spacing-xl) 0;
     border-top: 1px solid var(--outline-variant);
-    font-size: var(--font-sm);
+    font-size: var(--font-md);
     color: var(--on-surface-muted);
+    width: 100%;
 }
 
 .footer-bottom p {
