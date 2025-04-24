@@ -1,0 +1,19 @@
+Required Images for TaskSwap Website:
+
+1. logo.png - The TaskSwap app logo (already added)
+2. app-preview.png - A hero image showing the app on a phone
+3. screen-tasks.png - Screenshot of the tasks screen
+4. screen-profile.png - Screenshot of the profile screen
+5. screen-social.png - Screenshot of the social/friends screen
+6. app-devices.png - Image showing the app on multiple devices
+
+You can create these images by:
+- Taking screenshots of your app running on a device or emulator
+- Using design tools like Figma, Photoshop, or Canva to create mockups
+- Using online mockup generators to place your screenshots in device frames
+
+For best results:
+- Use high-resolution images (at least 1080px wide)
+- Keep file sizes reasonable (compress images if needed)
+- Use PNG format for screenshots with transparency
+- Maintain consistent aspect ratios for similar images
