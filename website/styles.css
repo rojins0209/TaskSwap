@@ -391,11 +391,11 @@ header {
 }
 
 header.scrolled {
-    transform: translateY(-100%);
+    box-shadow: 0 4px 20px var(--shadow-strong);
 }
 
-header.visible {
-    transform: translateY(0);
+header.hidden {
+    transform: translateY(-100%);
 }
 
 nav {
@@ -529,6 +529,32 @@ nav {
     color: var(--on-surface);
     cursor: pointer;
     transition: background-color var(--transition-fast);
+}
+
+/* Mobile menu active state */
+.nav-links.active {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    width: 100%;
+    background-color: var(--surface);
+    padding: var(--spacing-lg);
+    box-shadow: 0 10px 20px var(--shadow);
+    z-index: var(--z-dropdown);
+    animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Hero Section */
@@ -1625,10 +1651,12 @@ footer::before {
     --primary-color-rgb: 103, 80, 164;
     --on-primary-container-rgb: 33, 0, 94;
     --on-surface-rgb: 28, 27, 31;
+    --surface-rgb: 255, 251, 254;
 }
 
 .dark-theme {
     --primary-color-rgb: 208, 188, 255;
     --on-primary-container-rgb: 234, 221, 255;
     --on-surface-rgb: 230, 225, 229;
+    --surface-rgb: 28, 27, 31;
 }

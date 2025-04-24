@@ -166,11 +166,11 @@ document.addEventListener('DOMContentLoaded', function() {
             transition: opacity 0.6s ease, transform 0.6s ease;
         }
 
-        .header {
+        header {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .header.hidden {
+        header.hidden {
             transform: translateY(-100%);
         }
     `;
