@@ -7,339 +7,474 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="icon" type="image/svg+xml" href="images/logo.png">
+    <style>
+        /* Initial state for animated elements to prevent FOUC */
+        .section-header, .feature-card, .showcase-item, .download, .aura-card, .footer-column {
+            opacity: 0;
+        }
+    </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container">
+    <div class="page-wrapper">
+        <header>
             <nav>
                 <div class="logo">
-                    <img src="images/comlogo.png" alt="MARTIN Logo" class="company-logo">
-                    <div class="divider"></div>
-                    <div class="app-logo">
-                        <img src="images/logo.png" alt="TaskSwap Logo">
-                        <span>TaskSwap</span>
-                    </div>
+                    <img src="images/logo.png" alt="TaskSwap Logo" class="app-logo">
+                    <span>TaskSwap</span>
                 </div>
                 <ul class="nav-links">
                     <li><a href="#features">Features</a></li>
-                    <li><a href="#showcase">App</a></li>
-                    <li><a href="#aura-card">Aura Card</a></li>
+                    <li><a href="#showcase">Showcase</a></li>
+                    <li><a href="#social">Social</a></li>
                     <li><a href="#download">Download</a></li>
                     <li><a href="#about">About</a></li>
                 </ul>
                 <div class="nav-actions">
-                    <button class="theme-toggle">
+                    <div class="theme-toggle" aria-label="Toggle dark mode">
                         <i class="fas fa-moon"></i>
-                    </button>
-                    <a href="#download" class="btn btn-primary btn-sm">Get App</a>
-                    <button class="mobile-menu-btn">
+                    </div>
+                    <a href="#download" class="nav-cta">Get App</a>
+                    <div class="mobile-menu-btn">
                         <i class="fas fa-bars"></i>
-                    </button>
+                    </div>
                 </div>
             </nav>
-        </div>
-    </header>
+        </header>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1>TaskSwap: Task Management with a Social Twist</h1>
-                <p>TaskSwap is a productivity app that helps you manage tasks, earn points, and connect with friends. Stay organized, motivated, and productive with our gamified approach to task management.</p>
-                <div class="buttons">
-                    <a href="#download" class="btn btn-primary">
-                        <i class="fas fa-download"></i>
-                        Download Now
-                    </a>
-                    <a href="#features" class="btn btn-secondary">
-                        <i class="fas fa-info-circle"></i>
-                        Learn More
-                    </a>
-                </div>
-                <div class="stats">
-                    <div class="stat">
-                        <span class="number">10K+</span>
-                        <span class="label">Active Users</span>
-                    </div>
-                    <div class="stat">
-                        <span class="number">4.8</span>
-                        <span class="label">App Rating</span>
-                    </div>
-                    <div class="stat">
-                        <span class="number">50K+</span>
-                        <span class="label">Tasks Completed</span>
-                    </div>
-                </div>
+        <div class="hero-wrapper">
+            <div class="hero-background">
+                <div class="hero-shape shape-1"></div>
+                <div class="hero-shape shape-2"></div>
+                <div class="hero-shape shape-3"></div>
             </div>
-            <div class="hero-image">
-                <img src="images/app-preview.png" alt="TaskSwap App Preview">
-            </div>
-        </div>
-    </section>
 
-    <!-- Features Section -->
+            <section class="hero">
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="fas fa-bolt"></i>
+                        <span>New Version Available</span>
+                    </div>
+                    <h1>Accomplish More, <span class="gradient-text">Together</span></h1>
+                    <p>TaskSwap is a gamified task management app that helps you stay productive while connecting with friends. Earn aura points, compete on leaderboards, and challenge your friends.</p>
+                    <div class="hero-buttons">
+                        <a href="#download" class="btn primary-btn">
+                            <i class="fas fa-download"></i>
+                            Get Started
+                        </a>
+                        <a href="#features" class="btn secondary-btn">
+                            <i class="fas fa-info-circle"></i>
+                            Learn More
+                        </a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span class="hero-stat-number">10K+</span>
+                            <span class="hero-stat-label">Downloads</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-number">4.8</span>
+                            <span class="hero-stat-label">App Rating</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-number">50K+</span>
+                            <span class="hero-stat-label">Tasks Completed</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <div class="phone-mockup">
+                        <img src="images/app-preview.png" alt="TaskSwap App Preview">
+                        <div class="phone-glare"></div>
+                    </div>
+                    <div class="floating-elements">
+                        <div class="floating-element fe-1">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Task Completed!</span>
+                        </div>
+                        <div class="floating-element fe-2">
+                            <i class="fas fa-fire"></i>
+                            <span>7 Day Streak!</span>
+                        </div>
+                        <div class="floating-element fe-3">
+                            <i class="fas fa-trophy"></i>
+                            <span>New Achievement!</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
     <section id="features" class="features">
-        <div class="container">
-            <div class="section-header">
-                <h2>Why Choose TaskSwap?</h2>
-                <p>Powerful features to boost your productivity and social experience</p>
+        <div class="section-header">
+            <div class="section-icon">
+                <i class="fas fa-star"></i>
             </div>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <h3>Task Management</h3>
-                    <p>Organize your tasks with categories, due dates, and priority levels.</p>
-                    <div class="feature-detail">
-                        <ul>
-                            <li>Categorize tasks</li>
-                            <li>Set due dates</li>
-                            <li>Track completion</li>
-                        </ul>
-                    </div>
+            <h2>Why Choose TaskSwap?</h2>
+            <p class="section-subtitle">Powerful features to boost your productivity and social experience</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-tasks"></i>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-fire"></i>
-                    </div>
-                    <h3>Aura Points</h3>
-                    <p>Earn aura points for completing tasks and build your streak.</p>
-                    <div class="feature-detail">
-                        <ul>
-                            <li>Earn points based on difficulty</li>
-                            <li>Build daily streaks</li>
-                            <li>Share your aura card</li>
-                        </ul>
-                    </div>
+                <h3>Task Management</h3>
+                <p>Organize your tasks with categories, due dates, and priority levels. Keep track of everything in one place.</p>
+                <div class="feature-detail">
+                    <ul>
+                        <li>Categorize tasks (Work, Health, Learning, Personal)</li>
+                        <li>Set due dates and reminders</li>
+                        <li>Track completion status</li>
+                    </ul>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>Social Features</h3>
-                    <p>Connect with friends, challenge them, and share your achievements.</p>
-                    <div class="feature-detail">
-                        <ul>
-                            <li>Add friends</li>
-                            <li>Send task challenges</li>
-                            <li>Share achievements</li>
-                        </ul>
-                    </div>
+                <div class="feature-action">
+                    <a href="#showcase" class="feature-link">See in action <i class="fas fa-arrow-right"></i></a>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <h3>Leaderboard</h3>
-                    <p>Compete with friends on the leaderboard based on aura points.</p>
-                    <div class="feature-detail">
-                        <ul>
-                            <li>Real-time updates</li>
-                            <li>Weekly rankings</li>
-                            <li>Special badges</li>
-                        </ul>
-                    </div>
+            </div>
+
+            <div class="feature-card highlight">
+                <div class="feature-badge">Popular</div>
+                <div class="feature-icon">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <h3>Aura Points</h3>
+                <p>Earn aura points for completing tasks and build your streak. Watch your productivity score grow over time.</p>
+                <div class="feature-detail">
+                    <ul>
+                        <li>Earn points based on task difficulty</li>
+                        <li>Build and maintain daily streaks</li>
+                        <li>Share your aura card with friends</li>
+                    </ul>
+                </div>
+                <div class="feature-action">
+                    <a href="#showcase" class="feature-link">See in action <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>Social Features</h3>
+                <p>Connect with friends, challenge them, and share your achievements. Make productivity a social experience.</p>
+                <div class="feature-detail">
+                    <ul>
+                        <li>Add friends and view their profiles</li>
+                        <li>Send and accept task challenges</li>
+                        <li>Share achievements on your feed</li>
+                    </ul>
+                </div>
+                <div class="feature-action">
+                    <a href="#social" class="feature-link">Learn more <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <h3>Leaderboard</h3>
+                <p>Compete with friends on the leaderboard based on aura points. Rise to the top and earn recognition.</p>
+                <div class="feature-detail">
+                    <ul>
+                        <li>Real-time leaderboard updates</li>
+                        <li>Weekly and all-time rankings</li>
+                        <li>Special badges for top performers</li>
+                    </ul>
+                </div>
+                <div class="feature-action">
+                    <a href="#showcase" class="feature-link">See in action <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h3>Stats & Analytics</h3>
+                <p>Track your productivity with detailed statistics and insights. Understand your habits and improve over time.</p>
+                <div class="feature-detail">
+                    <ul>
+                        <li>Visual productivity charts</li>
+                        <li>Task completion rate analysis</li>
+                        <li>Category-based performance tracking</li>
+                    </ul>
+                </div>
+                <div class="feature-action">
+                    <a href="#showcase" class="feature-link">See in action <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-badge">New</div>
+                <div class="feature-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <h3>Smart Notifications</h3>
+                <p>Stay updated with push notifications for tasks and social activities. Never miss an important deadline.</p>
+                <div class="feature-detail">
+                    <ul>
+                        <li>Task due date reminders</li>
+                        <li>Friend activity notifications</li>
+                        <li>Challenge updates and results</li>
+                    </ul>
+                </div>
+                <div class="feature-action">
+                    <a href="#download" class="feature-link">Get the app <i class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Showcase Section -->
     <section id="showcase" class="showcase">
-        <div class="container">
-            <div class="section-header">
-                <h2>Beautiful, Intuitive Interface</h2>
-                <p>Designed for simplicity and productivity</p>
+        <div class="section-header">
+            <div class="section-icon">
+                <i class="fas fa-mobile-alt"></i>
             </div>
-            <div class="showcase-container">
-                <div class="showcase-item">
-                    <img src="images/screen-tasks.png" alt="Tasks Screen">
-                    <h3>Task Management</h3>
-                    <p>Organize and track your tasks with a clean interface.</p>
-                </div>
-                <div class="showcase-item">
-                    <img src="images/screen-profile.png" alt="Profile Screen">
-                    <h3>User Profile</h3>
-                    <p>View your stats, aura points, and streak.</p>
-                </div>
-                <div class="showcase-item">
-                    <img src="images/screen-social.png" alt="Social Screen">
-                    <h3>Social Features</h3>
-                    <p>Connect with friends and challenge them.</p>
-                </div>
-            </div>
+            <h2>Beautiful, Intuitive Interface</h2>
+            <p class="section-subtitle">Experience TaskSwap's modern design across all key features</p>
         </div>
-    </section>
 
-    <!-- Download Section -->
-    <section id="download" class="download">
-        <div class="container">
-            <div class="download-content">
-                <h2>Ready to Boost Your Productivity?</h2>
-                <p>Download TaskSwap today and start your productivity journey with a more engaging, social approach to getting things done.</p>
-                <div class="download-buttons">
-                    <a href="#" class="download-btn">
-                        <i class="fab fa-google-play"></i>
-                        <span>
-                            <small>Get it on</small>
-                            <strong>Google Play</strong>
-                        </span>
-                    </a>
-                    <a href="#" class="download-btn">
-                        <i class="fab fa-apple"></i>
-                        <span>
-                            <small>Download on the</small>
-                            <strong>App Store</strong>
-                        </span>
-                    </a>
-                </div>
-                <div class="download-note">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>Free download, no credit card required</span>
-                </div>
+        <div class="app-gallery">
+            <div class="gallery-tabs">
+                <button class="gallery-tab active" data-screen="tasks">Task Management</button>
+                <button class="gallery-tab" data-screen="profile">User Profile</button>
+                <button class="gallery-tab" data-screen="social">Social Features</button>
             </div>
-            <div class="download-image">
-                <img src="images/app-preview.png" alt="TaskSwap on multiple devices">
-            </div>
-        </div>
-    </section>
 
-    <!-- Aura Card Section -->
-    <section id="aura-card" class="aura-card">
-        <div class="container">
-            <div class="section-header">
-                <h2>Share Your Achievements</h2>
-                <p>Generate and share your personalized Aura Card to showcase your productivity stats.</p>
-            </div>
-            <div class="aura-card-container">
-                <div class="aura-card-content">
-                    <div class="aura-card-header">
-                        <div class="aura-card-logo">
-                            <i class="fas fa-bolt"></i>
-                            <span>TaskSwap</span>
-                        </div>
-                        <div class="aura-card-date">2023-11-15</div>
-                    </div>
-                    <div class="aura-card-user">
-                        <div class="aura-card-avatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="aura-card-user-info">
-                            <h3>John Doe</h3>
-                            <div class="aura-card-streak">
-                                <i class="fas fa-fire"></i>
-                                <span>7 day streak</span>
+            <div class="gallery-container">
+                <div class="gallery-screen active" id="tasks-screen">
+                    <div class="screen-image">
+                        <img src="images/screen-tasks.png" alt="Tasks Screen">
+                        <div class="screen-overlay">
+                            <div class="screen-details">
+                                <h3>Task Management</h3>
+                                <p>Organize and track your tasks with a clean, intuitive interface.</p>
+                                <ul class="feature-bullets">
+                                    <li><i class="fas fa-check"></i> Categorize by work, health, learning & personal</li>
+                                    <li><i class="fas fa-check"></i> Set due dates and priority levels</li>
+                                    <li><i class="fas fa-check"></i> Track completion with visual indicators</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
-                    <div class="aura-card-stats">
-                        <div class="aura-card-stat">
-                            <h4>Total Aura</h4>
-                            <div class="aura-card-stat-value">1,250</div>
-                            <div class="aura-card-stat-label">points</div>
+                </div>
+
+                <div class="gallery-screen" id="profile-screen">
+                    <div class="screen-image">
+                        <img src="images/screen-profile.png" alt="Profile Screen">
+                        <div class="screen-overlay">
+                            <div class="screen-details">
+                                <h3>User Profile</h3>
+                                <p>View your stats, aura points, and streak on your personalized profile.</p>
+                                <ul class="feature-bullets">
+                                    <li><i class="fas fa-check"></i> Track your productivity streaks</li>
+                                    <li><i class="fas fa-check"></i> Monitor aura points and achievements</li>
+                                    <li><i class="fas fa-check"></i> Customize your profile appearance</li>
+                                </ul>
+                            </div>
                         </div>
-                        <div class="aura-card-stat">
-                            <h4>Tasks Done</h4>
-                            <div class="aura-card-stat-value">42</div>
-                            <div class="aura-card-stat-label">completed</div>
-                        </div>
-                    </div>
-                    <div class="aura-card-categories">
-                        <div class="aura-card-category">
-                            <i class="fas fa-briefcase"></i>
-                            <span>15 Work</span>
-                        </div>
-                        <div class="aura-card-category">
-                            <i class="fas fa-heart"></i>
-                            <span>12 Health</span>
-                        </div>
-                        <div class="aura-card-category">
-                            <i class="fas fa-book"></i>
-                            <span>8 Learning</span>
-                        </div>
-                        <div class="aura-card-category">
-                            <i class="fas fa-user"></i>
-                            <span>7 Personal</span>
-                        </div>
-                    </div>
-                    <div class="aura-card-footer">
-                        <i class="fas fa-bolt"></i>
-                        <span>Generated with TaskSwap</span>
                     </div>
                 </div>
+
+                <div class="gallery-screen" id="social-screen">
+                    <div class="screen-image">
+                        <img src="images/screen-social.png" alt="Social Screen">
+                        <div class="screen-overlay">
+                            <div class="screen-details">
+                                <h3>Social Features</h3>
+                                <p>Connect with friends and challenge them to complete tasks together.</p>
+                                <ul class="feature-bullets">
+                                    <li><i class="fas fa-check"></i> Send and accept friend requests</li>
+                                    <li><i class="fas fa-check"></i> Challenge friends to complete tasks</li>
+                                    <li><i class="fas fa-check"></i> Share achievements on your activity feed</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gallery-nav">
+                <button class="gallery-nav-btn prev-btn" aria-label="Previous screen">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="gallery-dots">
+                    <span class="gallery-dot active" data-screen="tasks"></span>
+                    <span class="gallery-dot" data-screen="profile"></span>
+                    <span class="gallery-dot" data-screen="social"></span>
+                </div>
+                <button class="gallery-nav-btn next-btn" aria-label="Next screen">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
+    <section id="download" class="download">
+        <div class="download-content">
+            <h2>Ready to Boost Your Productivity?</h2>
+            <p>Download TaskSwap today and start your productivity journey.</p>
+            <div class="download-buttons">
+                <a href="#" class="download-btn">
+                    <i class="fab fa-google-play"></i>
+                    <span>
+                        <small>Get it on</small>
+                        <strong>Google Play</strong>
+                    </span>
+                </a>
+                <a href="#" class="download-btn">
+                    <i class="fab fa-apple"></i>
+                    <span>
+                        <small>Download on the</small>
+                        <strong>App Store</strong>
+                    </span>
+                </a>
+            </div>
+        </div>
+        <div class="download-image">
+            <img src="images/app-devices.svg" alt="TaskSwap on multiple devices">
+        </div>
+    </section>
+
+    <section class="aura-card-section">
+        <h2>Share Your Achievements</h2>
+        <p>Generate and share your personalized Aura Card to showcase your productivity stats.</p>
+        <div class="aura-card">
+            <div class="aura-card-header">
+                <div class="aura-card-logo">
+                    <i class="fas fa-bolt"></i>
+                    <span>TaskSwap</span>
+                </div>
+                <div class="aura-card-date">2023-11-15</div>
+            </div>
+            <div class="aura-card-user">
+                <div class="aura-card-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="aura-card-user-info">
+                    <h3>John Doe</h3>
+                    <div class="aura-card-streak">
+                        <i class="fas fa-fire"></i>
+                        <span>7 day streak</span>
+                    </div>
+                </div>
+            </div>
+            <div class="aura-card-stats">
+                <div class="aura-card-stat">
+                    <h4>Total Aura</h4>
+                    <div class="aura-card-stat-value">1,250</div>
+                    <div class="aura-card-stat-label">points</div>
+                </div>
+                <div class="aura-card-stat">
+                    <h4>Tasks Done</h4>
+                    <div class="aura-card-stat-value">42</div>
+                    <div class="aura-card-stat-label">completed</div>
+                </div>
+            </div>
+            <div class="aura-card-breakdown">
+                <div class="aura-card-breakdown-header">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>My Aura Breakdown</span>
+                </div>
+                <div class="aura-card-categories">
+                    <div class="aura-card-category">
+                        <i class="fas fa-briefcase"></i>
+                        <span>15 Work</span>
+                    </div>
+                    <div class="aura-card-category">
+                        <i class="fas fa-heart"></i>
+                        <span>12 Health</span>
+                    </div>
+                    <div class="aura-card-category">
+                        <i class="fas fa-book"></i>
+                        <span>8 Learning</span>
+                    </div>
+                    <div class="aura-card-category">
+                        <i class="fas fa-user"></i>
+                        <span>7 Personal</span>
+                    </div>
+                </div>
+            </div>
+            <div class="aura-card-footer">
+                <i class="fas fa-bolt"></i>
+                <span>Generated with TaskSwap</span>
+            </div>
+        </div>
+    </section>
+
     <footer id="about">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-info">
-                    <div class="footer-logo">
-                        <img src="images/comlogo.png" alt="MARTIN Logo" class="company-logo">
-                        <div class="divider"></div>
-                        <div class="app-logo">
-                            <img src="images/logo.png" alt="TaskSwap Logo">
-                            <span>TaskSwap</span>
-                        </div>
-                    </div>
-                    <p>A modern task management app with social features and gamification to boost your productivity.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-github"></i></a>
+        <div class="footer-content">
+            <div class="footer-info">
+                <div class="footer-logo-container">
+                    <img src="images/comlogo.png" alt="MARTIN Logo" class="footer-company-logo">
+                    <div class="logo-divider"></div>
+                    <div class="app-logo-container">
+                        <img src="images/logo.png" alt="TaskSwap Logo" class="footer-app-logo">
+                        <span>TaskSwap</span>
                     </div>
                 </div>
-                <div class="footer-links">
-                    <div class="footer-column">
-                        <h4>Product</h4>
-                        <ul>
-                            <li><a href="#features">Features</a></li>
-                            <li><a href="#showcase">Showcase</a></li>
-                            <li><a href="#aura-card">Aura Card</a></li>
-                            <li><a href="#download">Download</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-column">
-                        <h4>Support</h4>
-                        <ul>
-                            <li><a href="#">Help Center</a></li>
-                            <li><a href="#">Privacy Policy</a></li>
-                            <li><a href="#">Terms of Service</a></li>
-                            <li><a href="#">FAQ</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-column">
-                        <h4>Contact</h4>
-                        <ul>
-                            <li><a href="mailto:rojinssmartin@gmail.com">Email Us</a></li>
-                            <li><a href="#">Support</a></li>
-                            <li><a href="#">Location</a></li>
-                            <li><a href="#">Live Chat</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-column">
-                        <h4>Company</h4>
-                        <ul>
-                            <li><a href="#">About MARTIN</a></li>
-                            <li><a href="#">Careers</a></li>
-                            <li><a href="#">Blog</a></li>
-                            <li><a href="#">Press Kit</a></li>
-                        </ul>
-                    </div>
+                <p class="footer-tagline">A modern task management app with social features and gamification to boost your productivity.</p>
+                <div class="footer-social">
+                    <a href="#" class="footer-social-link">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="footer-social-link">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="footer-social-link">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="#" class="footer-social-link">
+                        <i class="fab fa-github"></i>
+                    </a>
                 </div>
             </div>
-            <div class="footer-bottom">
-                <p>&copy; 2023 MARTIN. All rights reserved.</p>
-                <p>Developed by <span class="developed-by">RØJINS</span></p>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features"><i class="fas fa-chevron-right"></i> Features</a></li>
+                        <li><a href="#showcase"><i class="fas fa-chevron-right"></i> Showcase</a></li>
+                        <li><a href="#social"><i class="fas fa-chevron-right"></i> Social</a></li>
+                        <li><a href="#download"><i class="fas fa-chevron-right"></i> Download</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Help Center</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Privacy Policy</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Terms of Service</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li><a href="mailto:rojinssmartin@gmail.com"><i class="fas fa-envelope"></i> Email Us</a></li>
+                        <li><a href="#"><i class="fas fa-phone"></i> Support</a></li>
+                        <li><a href="#"><i class="fas fa-map-marker-alt"></i> Location</a></li>
+                        <li><a href="#"><i class="fas fa-headset"></i> Live Chat</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> About MARTIN</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Careers</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Blog</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Press Kit</a></li>
+                    </ul>
+                </div>
             </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2023 MARTIN. All rights reserved.</p>
+            <p>Developed by <span class="developed-by">RØJINS</span></p>
         </div>
     </footer>
 
