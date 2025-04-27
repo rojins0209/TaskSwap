@@ -21,6 +21,7 @@ import 'package:taskswap/services/task_service.dart';
 import 'package:taskswap/theme/app_theme.dart';
 import 'package:taskswap/providers/theme_provider.dart';
 import 'package:taskswap/utils/edge_case_handler.dart';
+import 'package:taskswap/utils/security_provider.dart';
 import 'package:taskswap/widgets/app_logo.dart';
 import 'package:taskswap/widgets/network_aware_app.dart';
 
@@ -31,6 +32,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    // Initialize security provider to handle SSL/TLS updates
+    await SecurityProvider.initialize();
+
     // Initialize Firebase
     await Firebase.initializeApp();
 
