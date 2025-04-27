@@ -86,7 +86,14 @@ class UserService {
 
         // Update widget data
         try {
-          _widgetService.updateUserStatsWidget(user);
+          // Convert UserModel to a Map before passing to updateUserStatsWidget
+          final userStatsMap = {
+            'auraPoints': user.auraPoints,
+            'streakCount': user.streakCount,
+            'completedTasks': user.completedTasks,
+            'totalTasks': user.totalTasks,
+          };
+          _widgetService.updateUserStatsWidget(userStatsMap);
         } catch (e) {
           debugPrint('Error updating widget data: $e');
           // Continue execution even if widget update fails

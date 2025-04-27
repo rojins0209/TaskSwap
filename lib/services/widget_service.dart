@@ -12,16 +12,16 @@ class WidgetService {
   static const String _challengesKey = 'flutter.widget_challenges';
 
   /// Update the user stats widget data
-  Future<bool> updateUserStatsWidget(UserModel user) async {
+  Future<bool> updateUserStatsWidget(Map<String, dynamic> userData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
       // Create a simplified map with just the data needed for the widget
       final widgetData = {
-        'auraPoints': user.auraPoints,
-        'streakCount': user.streakCount,
-        'completedTasks': user.completedTasks,
-        'totalTasks': user.totalTasks,
+        'auraPoints': userData['auraPoints'] ?? 0,
+        'streakCount': userData['streakCount'] ?? 0,
+        'completedTasks': userData['completedTasks'] ?? 0,
+        'totalTasks': userData['totalTasks'] ?? 0,
       };
 
       // Save to SharedPreferences
@@ -102,7 +102,14 @@ class WidgetService {
       bool success = true;
 
       if (user != null) {
-        final userResult = await updateUserStatsWidget(user);
+        // Convert UserModel to Map before passing to updateUserStatsWidget
+        final userStatsMap = {
+          'auraPoints': user.auraPoints,
+          'streakCount': user.streakCount,
+          'completedTasks': user.completedTasks,
+          'totalTasks': user.totalTasks,
+        };
+        final userResult = await updateUserStatsWidget(userStatsMap);
         success = success && userResult;
       }
 
