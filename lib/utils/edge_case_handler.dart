@@ -26,32 +26,26 @@ class EdgeCaseHandler {
     try {
       final now = DateTime.now();
 
-      // Use a simpler query and filter in memory
-      // First, get all incomplete challenge tasks for this user
-      final challengesSnapshot = await _firestore
+      // Get all challenge tasks that are not completed and have a due date in the past
+      // This query uses the composite index we created in Firebase
+      final expiredChallengesSnapshot = await _firestore
           .collection('tasks')
           .where('createdBy', isEqualTo: userId)
           .where('isCompleted', isEqualTo: false)
+          .where('isChallenge', isEqualTo: true)
+          .where('dueDate', isLessThan: Timestamp.fromDate(now))
+          .orderBy('dueDate')
           .get();
 
-      // Filter in memory to find expired challenges
-      final expiredChallenges = challengesSnapshot.docs
-          .map((doc) => Task.fromFirestore(doc))
-          .where((task) =>
-              task.isChallenge &&
-              task.dueDate != null &&
-              task.dueDate!.isBefore(now))
-          .toList();
-
-      if (expiredChallenges.isEmpty) {
+      if (expiredChallengesSnapshot.docs.isEmpty) {
         return;
       }
 
-      debugPrint('Found ${expiredChallenges.length} expired challenges');
+      debugPrint('Found ${expiredChallengesSnapshot.docs.length} expired challenges');
 
       // Process each expired challenge
-      for (final task in expiredChallenges) {
-        if (task.id == null) continue;
+      for (final doc in expiredChallengesSnapshot.docs) {
+        final task = Task.fromFirestore(doc);
 
         // Mark the challenge as expired in Firestore
         await _firestore.collection('tasks').doc(task.id).update({
