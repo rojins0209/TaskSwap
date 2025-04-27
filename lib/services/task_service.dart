@@ -892,16 +892,21 @@ class TaskService {
 
           // Use a transaction for the update operation
           await _firestore.runTransaction((transaction) async {
+            // Get a reference to the user document
+            final userRef = _firestore.collection('users').doc(userId);
+
+            // IMPORTANT: Perform ALL reads before ANY writes
+            // Get the current user data
+            DocumentSnapshot userDoc = await transaction.get(userRef);
+
+            // Check if this is a challenge task (which should award points)
+            bool isChallengeTask = taskData['isChallenge'] == true;
+
+            // Now perform all writes
             // Mark task as completed
             transaction.update(taskRef, {
               'isCompleted': true,
             });
-
-            // Get a reference to the user document
-            final userRef = _firestore.collection('users').doc(userId);
-
-            // Get the current user data
-            DocumentSnapshot userDoc = await transaction.get(userRef);
 
             if (!userDoc.exists) {
               // If user doesn't exist, create it with initial values
@@ -927,32 +932,26 @@ class TaskService {
                 'friendRequests': [],
                 'achievements': [],
               });
-
-              // Since we've set the initial values, we can return early
-              return;
-            }
-
-            // Get current aura points and completed tasks count
-            Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-            int completedTasks = userData['completedTasks'] ?? 0;
-
-            // Check if this is a challenge task (which should award points)
-            bool isChallengeTask = taskData['isChallenge'] == true;
-
-            // Only award points for challenge tasks or milestone achievements
-            // Regular tasks don't award points directly - they need to be recognized by friends
-            if (isChallengeTask) {
-              int currentPoints = userData['auraPoints'] ?? 0;
-              transaction.update(userRef, {
-                'auraPoints': currentPoints + taskPoints,
-                'completedTasks': completedTasks + 1,
-                'lastPointsEarnedAt': FieldValue.serverTimestamp(), // Update the timestamp when points were earned
-              });
             } else {
-              // For regular tasks, just increment the completed tasks count
-              transaction.update(userRef, {
-                'completedTasks': completedTasks + 1,
-              });
+              // Get current aura points and completed tasks count
+              Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+              int completedTasks = userData['completedTasks'] ?? 0;
+
+              // Only award points for challenge tasks or milestone achievements
+              // Regular tasks don't award points directly - they need to be recognized by friends
+              if (isChallengeTask) {
+                int currentPoints = userData['auraPoints'] ?? 0;
+                transaction.update(userRef, {
+                  'auraPoints': currentPoints + taskPoints,
+                  'completedTasks': completedTasks + 1,
+                  'lastPointsEarnedAt': FieldValue.serverTimestamp(), // Update the timestamp when points were earned
+                });
+              } else {
+                // For regular tasks, just increment the completed tasks count
+                transaction.update(userRef, {
+                  'completedTasks': completedTasks + 1,
+                });
+              }
             }
           });
 
