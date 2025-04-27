@@ -28,6 +28,9 @@ class Challenge {
   final TaskCategory category; // Category of the challenge
   final int? timerDuration; // Timer duration in minutes (optional)
   final bool challengeYourself; // Whether this is a challenge yourself with friend
+  final double? senderProgress; // Progress of the sender (0.0 to 1.0)
+  final double? receiverProgress; // Progress of the receiver (0.0 to 1.0)
+  final String? winnerUserId; // User ID of the winner (first to complete)
 
   Challenge({
     this.id,
@@ -49,6 +52,9 @@ class Challenge {
     this.category = TaskCategory.personal,
     this.timerDuration,
     this.challengeYourself = false,
+    this.senderProgress = 0.0,
+    this.receiverProgress = 0.0,
+    this.winnerUserId,
   });
 
   // Convert Challenge object to a Map for Firestore
@@ -72,6 +78,9 @@ class Challenge {
       'challengeYourself': challengeYourself,
       'senderCompletedAt': senderCompletedAt != null ? Timestamp.fromDate(senderCompletedAt!) : null,
       'receiverCompletedAt': receiverCompletedAt != null ? Timestamp.fromDate(receiverCompletedAt!) : null,
+      'senderProgress': senderProgress,
+      'receiverProgress': receiverProgress,
+      'winnerUserId': winnerUserId,
     };
   }
 
@@ -107,6 +116,14 @@ class Challenge {
       return null;
     }
 
+    // Get nullable double value
+    double? getNullableDoubleValue(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      return null;
+    }
+
     return Challenge(
       id: doc.id,
       fromUserId: data['fromUserId'] ?? '',
@@ -127,6 +144,9 @@ class Challenge {
       category: TaskCategoryHelper.fromString(data['category']),
       timerDuration: getNullableIntValue(data['timerDuration']),
       challengeYourself: data['challengeYourself'] ?? false,
+      senderProgress: getNullableDoubleValue(data['senderProgress']) ?? 0.0,
+      receiverProgress: getNullableDoubleValue(data['receiverProgress']) ?? 0.0,
+      winnerUserId: data['winnerUserId'],
     );
   }
 
@@ -151,6 +171,9 @@ class Challenge {
     TaskCategory? category,
     int? timerDuration,
     bool? challengeYourself,
+    double? senderProgress,
+    double? receiverProgress,
+    String? winnerUserId,
   }) {
     return Challenge(
       id: id ?? this.id,
@@ -172,6 +195,9 @@ class Challenge {
       category: category ?? this.category,
       timerDuration: timerDuration ?? this.timerDuration,
       challengeYourself: challengeYourself ?? this.challengeYourself,
+      senderProgress: senderProgress ?? this.senderProgress,
+      receiverProgress: receiverProgress ?? this.receiverProgress,
+      winnerUserId: winnerUserId ?? this.winnerUserId,
     );
   }
 }

@@ -105,6 +105,14 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
         // Filter only completed tasks
         final completedTasks = tasks.where((task) => task.isCompleted).toList();
 
+        // Sort by completion date (most recent first)
+        // Since we don't have a completedAt field, we'll use createdAt as a proxy
+        completedTasks.sort((a, b) {
+          if (a.createdAt == null) return 1;
+          if (b.createdAt == null) return -1;
+          return b.createdAt!.compareTo(a.createdAt!);
+        });
+
         if (completedTasks.isEmpty) {
           return Center(
             child: Column(

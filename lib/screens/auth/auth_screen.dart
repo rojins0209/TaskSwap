@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:taskswap/screens/auth/improved_login_screen.dart';
-import 'package:taskswap/screens/auth/improved_signup_screen.dart';
+import 'package:taskswap/screens/auth/minimalist_login_screen.dart';
+import 'package:taskswap/screens/auth/minimalist_signup_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);

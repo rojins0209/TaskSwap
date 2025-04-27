@@ -707,6 +707,25 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
         final incompleteTasks = tasks.where((task) => !task.isCompleted).toList();
         final completedTasks = tasks.where((task) => task.isCompleted).toList();
 
+        // Sort incomplete tasks by due date (closest first)
+        incompleteTasks.sort((a, b) {
+          if (a.dueDate == null && b.dueDate == null) return 0;
+          if (a.dueDate == null) return 1;
+          if (b.dueDate == null) return -1;
+          return a.dueDate!.compareTo(b.dueDate!);
+        });
+
+        // Sort completed tasks by most recently completed (using createdAt as proxy)
+        completedTasks.sort((a, b) {
+          if (a.createdAt == null && b.createdAt == null) return 0;
+          if (a.createdAt == null) return 1;
+          if (b.createdAt == null) return -1;
+          return b.createdAt!.compareTo(a.createdAt!);
+        });
+
+        // Show all completed tasks
+        // No need to limit them as we'll display them all
+
         // Update task counts in Firestore to match actual data
         _updateTaskCounts(incompleteTasks.length, completedTasks.length);
 
@@ -724,49 +743,10 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                  // Completed tasks section
-                  if (completedTasks.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4, bottom: 16),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Completed',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '(${completedTasks.length})',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: completedTasks.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        final task = completedTasks[index];
-                        return ModernTaskCard(
-                          task: task,
-                          onTaskUpdated: () {
-                            setState(() {});
-                          },
-                        );
-                      },
-                    ),
-                  ],
-
-                  // Incomplete tasks section
+                  // Incomplete tasks section first
                   if (incompleteTasks.isNotEmpty) ...[
                     Padding(
-                      padding: const EdgeInsets.only(left: 4, top: 24, bottom: 16),
+                      padding: const EdgeInsets.only(left: 4, bottom: 16),
                       child: Row(
                         children: [
                           Text(
@@ -797,6 +777,53 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
                           onTaskUpdated: () {
                             setState(() {});
                           },
+                        );
+                      },
+                    ),
+                  ],
+
+                  // Completed tasks section with visual separator
+                  if (completedTasks.isNotEmpty) ...[
+                    const SizedBox(height: 32),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      height: 1,
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 16),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Completed',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '(${completedTasks.length})',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(179), // ~70% opacity
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: completedTasks.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final task = completedTasks[index];
+                        return ModernTaskCard(
+                          task: task,
+                          onTaskUpdated: () {
+                            setState(() {});
+                          },
+                          isCompletedSection: true,
                         );
                       },
                     ),

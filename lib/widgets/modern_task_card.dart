@@ -10,11 +10,13 @@ import 'package:taskswap/utils/haptic_feedback_util.dart';
 class ModernTaskCard extends StatefulWidget {
   final Task task;
   final VoidCallback onTaskUpdated;
+  final bool isCompletedSection;
 
   const ModernTaskCard({
     super.key,
     required this.task,
     required this.onTaskUpdated,
+    this.isCompletedSection = false,
   });
 
   @override
@@ -74,24 +76,30 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: widget.task.isCompleted
-                ? colorScheme.surfaceContainerLow
-                : colorScheme.surface,
+            color: widget.isCompletedSection
+                ? colorScheme.surfaceContainerLowest
+                : widget.task.isCompleted
+                    ? colorScheme.surfaceContainerLow
+                    : colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: _isHovered
-                    ? colorScheme.shadow.withAlpha(26) // opacity 0.1
-                    : colorScheme.shadow.withAlpha(13), // opacity 0.05
-                blurRadius: _isHovered ? 8 : 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: widget.isCompletedSection
+                ? []
+                : [
+                    BoxShadow(
+                      color: _isHovered
+                          ? colorScheme.shadow.withAlpha(26) // opacity 0.1
+                          : colorScheme.shadow.withAlpha(13), // opacity 0.05
+                      blurRadius: _isHovered ? 8 : 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
             border: Border.all(
-              color: _isHovered
-                  ? colorScheme.primary.withAlpha(77) // opacity 0.3
-                  : colorScheme.outlineVariant,
-              width: 1,
+              color: widget.isCompletedSection
+                  ? colorScheme.outlineVariant
+                  : _isHovered
+                      ? colorScheme.primary.withAlpha(77) // opacity 0.3
+                      : colorScheme.outlineVariant,
+              width: widget.isCompletedSection ? 0.5 : 1,
             ),
           ),
           child: Material(
@@ -228,21 +236,27 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                       ],
                     ),
 
-                    // Category chip
-                    if (!widget.task.isCompleted) ...[
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _buildCategoryChip(widget.task.category),
-                          const Spacer(),
-                          if (widget.task.dueDate != null)
-                            _buildDueDate(widget.task.dueDate!),
+                    // Category chip and due date
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _buildCategoryChip(widget.task.category),
+                        if (widget.task.isChallenge) ...[
+                          const SizedBox(width: 8),
+                          _buildChallengeChip(),
                         ],
-                      ),
-                    ],
+                        const Spacer(),
+                        if (widget.task.timerDuration != null)
+                          _buildTimerChip(widget.task.timerDuration!),
+                        if (widget.task.timerDuration != null && widget.task.dueDate != null)
+                          const SizedBox(width: 8),
+                        if (widget.task.dueDate != null)
+                          _buildDueDate(widget.task.dueDate!),
+                      ],
+                    ),
 
                     // Due date and actions
-                    if (!widget.task.isCompleted) ...[
+                    if (!widget.task.isCompleted && !widget.isCompletedSection) ...[
                       const SizedBox(height: 12),
                       const Divider(height: 1),
                       const SizedBox(height: 12),
@@ -373,6 +387,76 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
               style: theme.textTheme.bodySmall?.copyWith(
                 color: color,
                 fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimerChip(int duration) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      label: 'Timer duration: $duration minutes',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.tertiaryContainer.withAlpha(200),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.timer_outlined,
+              size: 14,
+              color: colorScheme.onTertiaryContainer,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '$duration min',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onTertiaryContainer,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChallengeChip() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      label: widget.task.challengeYourself
+          ? 'This is a challenge with yourself and friends'
+          : 'This is a challenge task',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              widget.task.challengeYourself ? Icons.people : Icons.emoji_events_outlined,
+              size: 14,
+              color: colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              widget.task.challengeYourself ? 'Group Challenge' : 'Challenge',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSecondaryContainer,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

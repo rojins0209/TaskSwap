@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:taskswap/constants/app_constants.dart';
+import 'package:taskswap/main.dart'; // Import for navigatorKey
 import 'package:taskswap/models/task_category.dart';
 import 'package:taskswap/models/task_model.dart';
 import 'package:taskswap/models/user_model.dart';
@@ -7,9 +9,444 @@ import 'package:taskswap/services/auth_service.dart';
 import 'package:taskswap/services/challenge_service.dart';
 import 'package:taskswap/services/friend_service.dart';
 import 'package:taskswap/services/task_service.dart';
-import 'package:taskswap/widgets/custom_button.dart';
-import 'package:taskswap/widgets/custom_text_field.dart';
-import 'package:taskswap/widgets/date_time_picker.dart';
+import 'package:taskswap/utils/haptic_feedback_util.dart';
+import 'package:intl/intl.dart';
+
+// Custom TextField Widget
+class CustomTextField extends StatelessWidget {
+  final String label;
+  final String? hintText;
+  final String? hint;
+  final TextEditingController controller;
+  final int? maxLines;
+  final int? minLines;
+  final TextInputType? keyboardType;
+  final bool obscureText;
+  final String? Function(String?)? validator;
+  final Function(String)? onChanged;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
+  final FocusNode? focusNode;
+  final bool autofocus;
+  final bool readOnly;
+  final VoidCallback? onTap;
+  final bool enabled;
+  final InputDecoration? decoration;
+  final TextInputAction? textInputAction;
+  final EdgeInsetsGeometry? contentPadding;
+
+  const CustomTextField({
+    Key? key,
+    required this.label,
+    this.hintText,
+    this.hint,
+    required this.controller,
+    this.maxLines = 1,
+    this.minLines,
+    this.keyboardType,
+    this.obscureText = false,
+    this.validator,
+    this.onChanged,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.focusNode,
+    this.autofocus = false,
+    this.readOnly = false,
+    this.onTap,
+    this.enabled = true,
+    this.decoration,
+    this.textInputAction,
+    this.contentPadding,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          minLines: minLines,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          validator: validator,
+          onChanged: onChanged,
+          focusNode: focusNode,
+          autofocus: autofocus,
+          readOnly: readOnly,
+          onTap: onTap,
+          enabled: enabled,
+          textInputAction: textInputAction,
+          decoration: decoration ?? InputDecoration(
+            hintText: hintText ?? hint,
+            prefixIcon: prefixIcon,
+            suffixIcon: suffixIcon,
+            contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Custom Button Widget
+class CustomButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onPressed;
+  final bool isLoading;
+  final bool isOutlined;
+  final IconData? icon;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final double? width;
+  final double? height;
+  final double borderRadius;
+
+  const CustomButton({
+    Key? key,
+    required this.text,
+    required this.onPressed,
+    this.isLoading = false,
+    this.isOutlined = false,
+    this.icon,
+    this.backgroundColor,
+    this.textColor,
+    this.width,
+    this.height,
+    this.borderRadius = 12.0,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return SizedBox(
+      width: width ?? double.infinity,
+      height: height ?? 50,
+      child: isOutlined
+          ? OutlinedButton(
+              onPressed: isLoading ? null : onPressed,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: colorScheme.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(borderRadius),
+                ),
+              ),
+              child: _buildButtonContent(colorScheme.primary),
+            )
+          : ElevatedButton(
+              onPressed: isLoading ? null : onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: backgroundColor ?? colorScheme.primary,
+                foregroundColor: textColor ?? colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(borderRadius),
+                ),
+              ),
+              child: _buildButtonContent(textColor ?? colorScheme.onPrimary),
+            ),
+    );
+  }
+
+  Widget _buildButtonContent(Color textColor) {
+    if (isLoading) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        ),
+      );
+    }
+
+    if (icon != null) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Text(
+      text,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: textColor,
+      ),
+    );
+  }
+}
+
+// Date Time Picker Widget
+class DateTimePicker extends StatefulWidget {
+  final DateTime? selectedDateTime;
+  final Function(DateTime?) onDateTimeSelected;
+  final String label;
+  final bool allowRemoval;
+
+  const DateTimePicker({
+    Key? key,
+    this.selectedDateTime,
+    required this.onDateTimeSelected,
+    required this.label,
+    this.allowRemoval = true,
+  }) : super(key: key);
+
+  @override
+  State<DateTimePicker> createState() => _DateTimePickerState();
+}
+
+class _DateTimePickerState extends State<DateTimePicker> {
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+  bool _hasTime = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selectedDateTime != null) {
+      _selectedDate = widget.selectedDateTime;
+      _selectedTime = TimeOfDay.fromDateTime(widget.selectedDateTime!);
+      _hasTime = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _showDatePicker,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.colorScheme.outline),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _selectedDate == null
+                        ? 'Select date'
+                        : DateFormat('EEE, MMM d, yyyy').format(_selectedDate!),
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+                if (_selectedDate != null && widget.allowRemoval)
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: colorScheme.error,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _selectedDate = null;
+                        _selectedTime = null;
+                        _hasTime = false;
+                      });
+                      widget.onDateTimeSelected(null);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _buildQuickDateButton('Today', DateTime.now()),
+            const SizedBox(width: 8),
+            _buildQuickDateButton('Tomorrow', DateTime.now().add(const Duration(days: 1))),
+            const SizedBox(width: 8),
+            _buildQuickDateButton('Next Week', DateTime.now().add(const Duration(days: 7))),
+          ],
+        ),
+        if (_selectedDate != null) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _showTimePicker,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.colorScheme.outline),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _hasTime && _selectedTime != null
+                                ? _selectedTime!.format(context)
+                                : 'Add time (optional)',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        if (_hasTime && _selectedTime != null)
+                          IconButton(
+                            icon: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: colorScheme.error,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _selectedTime = null;
+                                _hasTime = false;
+                              });
+                              widget.onDateTimeSelected(_selectedDate);
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildQuickDateButton(String label, DateTime date) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Expanded(
+      child: OutlinedButton(
+        onPressed: () {
+          HapticFeedbackUtil.lightImpact();
+          setState(() {
+            _selectedDate = date;
+            _selectedTime = null;
+            _hasTime = false;
+          });
+          widget.onDateTimeSelected(_selectedDate);
+        },
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          side: BorderSide(color: colorScheme.primary),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDatePicker() async {
+    HapticFeedbackUtil.lightImpact();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (pickedDate != null && pickedDate != _selectedDate) {
+      setState(() {
+        _selectedDate = pickedDate;
+      });
+
+      DateTime dateTimeToReturn = pickedDate;
+      if (_hasTime && _selectedTime != null) {
+        dateTimeToReturn = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          _selectedTime!.hour,
+          _selectedTime!.minute,
+        );
+      }
+
+      widget.onDateTimeSelected(dateTimeToReturn);
+    }
+  }
+
+  Future<void> _showTimePicker() async {
+    HapticFeedbackUtil.lightImpact();
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+    );
+
+    if (pickedTime != null) {
+      setState(() {
+        _selectedTime = pickedTime;
+        _hasTime = true;
+      });
+
+      if (_selectedDate != null) {
+        final dateTime = DateTime(
+          _selectedDate!.year,
+          _selectedDate!.month,
+          _selectedDate!.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+        widget.onDateTimeSelected(dateTime);
+      }
+    }
+  }
+}
 
 class EnhancedAddTaskScreen extends StatefulWidget {
   const EnhancedAddTaskScreen({super.key});
@@ -36,6 +473,28 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
   final AuthService _authService = AuthService();
   final FriendService _friendService = FriendService();
   final ChallengeService _challengeService = ChallengeService();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Check if we were passed arguments to pre-select options
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null && args is Map<String, dynamic>) {
+        if (args['isChallenge'] == true) {
+          setState(() {
+            _isChallenge = true;
+          });
+        }
+        if (args['challengeYourself'] == true) {
+          setState(() {
+            _challengeYourself = true;
+          });
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -80,6 +539,26 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
       }
 
       if (_isChallenge) {
+        // Get friend IDs for the task
+        final List<String> friendIds = _selectedFriends.map((friend) => friend.id).toList();
+
+        // Create a challenge task first
+        final challengeTask = Task(
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          dueDate: _dueDate,
+          createdBy: userId,
+          points: int.parse(_pointsController.text),
+          category: _selectedCategory,
+          isChallenge: true,
+          challengeFriends: friendIds,
+          timerDuration: _timerDuration,
+          challengeYourself: _challengeYourself,
+        );
+
+        // Save the challenge task
+        await _taskService.createTask(challengeTask);
+
         // Create challenges for each selected friend
         for (final friend in _selectedFriends) {
           await _challengeService.sendChallenge(
@@ -89,6 +568,7 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
             category: _selectedCategory,
             timerDuration: _timerDuration,
             challengeYourself: _challengeYourself,
+            dueDate: _dueDate,
           );
         }
 
@@ -112,6 +592,7 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
           points: int.parse(_pointsController.text),
           category: _selectedCategory,
           isChallenge: false, // Explicitly set to false for personal tasks
+          challengeYourself: false,
         );
 
         await _taskService.createTask(task);
@@ -156,7 +637,10 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
       appBar: AppBar(
         title: Text(
           _isChallenge ? 'Create Challenge' : 'Create Task',
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
         ),
         backgroundColor: colorScheme.surface,
         elevation: 0,
@@ -166,136 +650,272 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Task Type Selector
-                _buildTaskTypeSelector(),
-                const SizedBox(height: 24),
-
-                // Title Field
-                CustomTextField(
-                  controller: _titleController,
-                  label: _isChallenge ? 'Challenge Title' : 'Task Title',
-                  hint: _isChallenge ? 'Enter challenge title' : 'Enter task title',
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a title';
-                    }
-                    return null;
-                  },
+        child: Stack(
+          children: [
+            // Background decorative elements
+            Positioned(
+              top: -100,
+              right: -100,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colorScheme.primary.withAlpha(15),
                 ),
-                const SizedBox(height: 24),
-
-                // Description Field
-                CustomTextField(
-                  controller: _descriptionController,
-                  label: 'Description (Optional)',
-                  hint: _isChallenge ? 'Enter challenge description' : 'Enter task description',
-                  maxLines: 3,
+              ),
+            ),
+            Positioned(
+              bottom: -80,
+              left: -80,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colorScheme.secondary.withAlpha(10),
                 ),
-                const SizedBox(height: 24),
+              ),
+            ),
 
-                // Due Date Picker
-                DateTimePicker(
-                  selectedDateTime: _dueDate,
-                  onDateTimeSelected: (dateTime) {
-                    setState(() {
-                      _dueDate = dateTime;
-                    });
-                  },
-                  label: 'Due Date',
-                ),
-                const SizedBox(height: 24),
-
-                // Points Field
-                Column(
+            // Main content
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24.0, 8.0, 24.0, 100.0), // Extra bottom padding for the button
+              child: Form(
+                key: _formKey,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomTextField(
-                      controller: _pointsController,
-                      label: _isChallenge ? 'Challenge Points' : 'Recognition Points',
-                      hint: _isChallenge
-                          ? 'Enter points for this challenge'
-                          : 'Enter points friends can award you',
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter points';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        final points = int.parse(value);
-                        if (points <= 0) {
-                          return 'Points must be greater than 0';
-                        }
-                        if (_isChallenge && points > AppConstants.maxChallengePoints) {
-                          return 'Maximum points for challenges is ${AppConstants.maxChallengePoints}';
-                        }
-                        return null;
-                      },
-                    ),
-                    if (!_isChallenge) ...[  // Only show for personal tasks
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withAlpha(20),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.withAlpha(50)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 16,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Personal tasks don\'t award points automatically. When you complete a task, you can share it with friends who can recognize your achievement and award you these points.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blue.shade800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                    // Task Type Selector
+                    _buildTaskTypeSelector(),
+                    const SizedBox(height: 32),
+
+                    // Title Field with modern styling
+                    Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.shadow.withAlpha(5),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Task Details',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Title Field
+                          CustomTextField(
+                            controller: _titleController,
+                            label: _isChallenge ? 'Challenge Title' : 'Task Title',
+                            hint: _isChallenge ? 'Enter challenge title' : 'Enter task title',
+                            prefixIcon: Icon(
+                              Icons.title,
+                              color: colorScheme.primary,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a title';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Description Field
+                          CustomTextField(
+                            controller: _descriptionController,
+                            label: 'Description (Optional)',
+                            hint: _isChallenge ? 'Enter challenge description' : 'Enter task description',
+                            prefixIcon: Icon(
+                              Icons.description_outlined,
+                              color: colorScheme.primary,
+                            ),
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Due Date Picker
+                          DateTimePicker(
+                            selectedDateTime: _dueDate,
+                            onDateTimeSelected: (dateTime) {
+                              setState(() {
+                                _dueDate = dateTime;
+                              });
+                            },
+                            label: 'Due Date',
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Points Field
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CustomTextField(
+                                controller: _pointsController,
+                                label: _isChallenge ? 'Challenge Points' : 'Recognition Points',
+                                hint: _isChallenge
+                                    ? 'Enter points for this challenge'
+                                    : 'Enter points friends can award you',
+                                prefixIcon: Icon(
+                                  Icons.stars,
+                                  color: colorScheme.primary,
+                                ),
+                                keyboardType: TextInputType.number,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter points';
+                                  }
+                                  if (int.tryParse(value) == null) {
+                                    return 'Please enter a valid number';
+                                  }
+                                  final points = int.parse(value);
+                                  if (points <= 0) {
+                                    return 'Points must be greater than 0';
+                                  }
+                                  if (_isChallenge && points > AppConstants.maxChallengePoints) {
+                                    return 'Maximum points for challenges is ${AppConstants.maxChallengePoints}';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              if (!_isChallenge) ...[  // Only show for personal tasks
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer.withAlpha(50),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: colorScheme.primary.withAlpha(50)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        size: 20,
+                                        color: colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Personal tasks don\'t award points automatically. When you complete a task, you can share it with friends who can recognize your achievement.',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onPrimaryContainer,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Category Selector
+                    const SizedBox(height: 32),
+                    _buildCategorySelector(),
+
+                    // Challenge options
+                    if (_isChallenge) ...[
+                      const SizedBox(height: 32),
+                      _buildFriendSelector(),
+                      const SizedBox(height: 32),
+                      _buildChallengeOptions(),
                     ],
+
+                    const SizedBox(height: 40),
                   ],
                 ),
-
-                // Category Selector
-                const SizedBox(height: 24),
-                _buildCategorySelector(),
-
-                // Challenge options
-                if (_isChallenge) ...[
-                  const SizedBox(height: 24),
-                  _buildFriendSelector(),
-                  const SizedBox(height: 24),
-                  _buildChallengeOptions(),
-                ],
-
-                const SizedBox(height: 40),
-
-                // Create Button
-                CustomButton(
-                  text: _isChallenge ? 'Send Challenge' : 'Create Task',
-                  onPressed: _createTask,
-                  isLoading: _isLoading,
-                ),
-              ],
+              ),
             ),
-          ),
+
+            // Fixed bottom button
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withAlpha(20),
+                      blurRadius: 8,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withAlpha(40),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _createTask,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      disabledBackgroundColor: colorScheme.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading
+                        ? SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: colorScheme.onPrimary,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _isChallenge ? Icons.send : Icons.add_task,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _isChallenge ? 'Send Challenge' : 'Create Task',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -303,89 +923,170 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
 
   Widget _buildTaskTypeSelector() {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'What would you like to create?',
-          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildTaskTypeCard(
-                title: 'Personal Task',
-                icon: Icons.check_circle_outline,
-                isSelected: !_isChallenge,
-                onTap: () {
-                  setState(() {
-                    _isChallenge = false;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildTaskTypeCard(
-                title: 'Challenge Friends',
-                icon: Icons.emoji_events_outlined,
-                isSelected: _isChallenge,
-                onTap: () {
-                  setState(() {
-                    _isChallenge = true;
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTaskTypeCard({
-    required String title,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary.withAlpha(25) : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? colorScheme.primary : colorScheme.outline,
-            width: isSelected ? 2 : 1,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+        const SizedBox(height: 20),
+
+        // Modern segmented control
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withAlpha(10),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              textAlign: TextAlign.center,
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                // Personal Task Option
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      // Always update state when tapped, even if already selected
+                      // This ensures proper UI refresh
+                      setState(() {
+                        _isChallenge = false;
+                        // Reset selected friends when switching to personal task
+                        _selectedFriends.clear();
+                      });
+                      HapticFeedbackUtil.selectionClick();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      decoration: BoxDecoration(
+                        color: !_isChallenge
+                            ? colorScheme.primaryContainer
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: !_isChallenge ? [
+                          BoxShadow(
+                            color: colorScheme.primary.withAlpha(40),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                            spreadRadius: 1,
+                          ),
+                        ] : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: !_isChallenge
+                                  ? colorScheme.primary.withAlpha(40)
+                                  : colorScheme.surfaceContainerLow,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.check_circle_outline,
+                              size: 28,
+                              color: !_isChallenge
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Personal Task',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: !_isChallenge ? FontWeight.bold : FontWeight.normal,
+                              color: !_isChallenge
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Challenge Friends Option
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      // Always update state when tapped, even if already selected
+                      // This ensures proper UI refresh
+                      setState(() {
+                        _isChallenge = true;
+                      });
+                      HapticFeedbackUtil.selectionClick();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      decoration: BoxDecoration(
+                        color: _isChallenge
+                            ? colorScheme.secondaryContainer
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: _isChallenge ? [
+                          BoxShadow(
+                            color: colorScheme.secondary.withAlpha(40),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                            spreadRadius: 1,
+                          ),
+                        ] : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _isChallenge
+                                  ? colorScheme.secondary.withAlpha(40)
+                                  : colorScheme.surfaceContainerLow,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.emoji_events_outlined,
+                              size: 28,
+                              color: _isChallenge
+                                  ? colorScheme.secondary
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Challenge Friends',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: _isChallenge ? FontWeight.bold : FontWeight.normal,
+                              color: _isChallenge
+                                  ? colorScheme.secondary
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -451,8 +1152,8 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
                     CustomButton(
                       text: 'Add Friends',
                       onPressed: () {
-                        // Navigate to friends screen
-                        Navigator.pushNamed(context, '/friends');
+                        // Use the global navigator key to navigate
+                        navigatorKey.currentState?.pushNamed('/friends');
                       },
                     ),
                   ],
@@ -568,58 +1269,90 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
           style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colorScheme.outline),
-          ),
-          child: Column(
-            children: [
-              Wrap(
-                spacing: 8,
-                children: [
-                  TaskCategory.work,
-                  TaskCategory.health,
-                  TaskCategory.learning,
-                  TaskCategory.personal,
-                ].map((category) {
-                  final isSelected = _selectedCategory == category;
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ChoiceChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
+
+        // Modern grid layout for categories
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 1.5,
+          children: [
+            TaskCategory.work,
+            TaskCategory.health,
+            TaskCategory.learning,
+            TaskCategory.personal,
+          ].map((category) {
+            final isSelected = _selectedCategory == category;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedCategory = category;
+                });
+                HapticFeedbackUtil.lightImpact();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: isSelected ? category.color.withAlpha(40) : colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected ? category.color : colorScheme.outline.withAlpha(128),
+                    width: isSelected ? 2 : 1,
+                  ),
+                  boxShadow: isSelected ? [
+                    BoxShadow(
+                      color: category.color.withAlpha(50),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ] : null,
+                ),
+                child: Stack(
+                  children: [
+                    if (isSelected)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: category.color,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             category.icon,
-                            size: 18,
-                            color: isSelected ? Colors.white : category.color,
+                            size: 32,
+                            color: isSelected ? category.color : colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 8),
-                          Text(category.name),
+                          const SizedBox(height: 8),
+                          Text(
+                            category.name,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: isSelected ? category.color : colorScheme.onSurface,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
                         ],
                       ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-                        }
-                      },
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      selectedColor: category.color,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : colorScheme.onSurface,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
                     ),
-                  );
-                }).toList(),
+                  ],
+                ),
               ),
-            ],
-          ),
+            );
+          }).toList(),
         ),
       ],
     );
@@ -634,68 +1367,199 @@ class _EnhancedAddTaskScreenState extends State<EnhancedAddTaskScreen> {
       children: [
         Text(
           'Challenge Options',
-          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 16),
+
+        // Modern card with options
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: colorScheme.outline),
+            color: colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withAlpha(10),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
               // Challenge yourself with friend option
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Challenge yourself with friend',
-                      style: theme.textTheme.bodyMedium,
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: _challengeYourself
+                      ? colorScheme.secondaryContainer.withAlpha(100)
+                      : colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _challengeYourself
+                        ? colorScheme.secondary.withAlpha(100)
+                        : colorScheme.outline.withAlpha(50),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _challengeYourself
+                            ? colorScheme.secondaryContainer
+                            : colorScheme.surfaceContainerHigh,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.people_outline,
+                        size: 20,
+                        color: _challengeYourself
+                            ? colorScheme.secondary
+                            : colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  Switch(
-                    value: _challengeYourself,
-                    onChanged: (value) {
-                      setState(() {
-                        _challengeYourself = value;
-                      });
-                    },
-                    activeColor: colorScheme.primary,
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Challenge yourself with friends',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'You and your friends will compete on the same task',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _challengeYourself,
+                      onChanged: (value) {
+                        setState(() {
+                          _challengeYourself = value;
+                        });
+                        HapticFeedbackUtil.lightImpact();
+                      },
+                      activeColor: colorScheme.secondary,
+                      activeTrackColor: colorScheme.secondaryContainer,
+                    ),
+                  ],
+                ),
               ),
+
               const SizedBox(height: 16),
 
               // Timer option
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Set a timer (minutes)',
-                      style: theme.textTheme.bodyMedium,
-                    ),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: _timerDuration != null
+                      ? colorScheme.tertiaryContainer.withAlpha(100)
+                      : colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _timerDuration != null
+                        ? colorScheme.tertiary.withAlpha(100)
+                        : colorScheme.outline.withAlpha(50),
                   ),
-                  SizedBox(
-                    width: 100,
-                    child: TextFormField(
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'Optional',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _timerDuration != null
+                            ? colorScheme.tertiaryContainer
+                            : colorScheme.surfaceContainerHigh,
+                        shape: BoxShape.circle,
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _timerDuration = value.isNotEmpty ? int.tryParse(value) : null;
-                        });
-                      },
+                      child: Icon(
+                        Icons.timer_outlined,
+                        size: 20,
+                        color: _timerDuration != null
+                            ? colorScheme.tertiary
+                            : colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Set a timer',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Time limit in minutes (optional)',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: 80,
+                      child: TextFormField(
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'Minutes',
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorScheme.outline,
+                              width: 1,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: _timerDuration != null
+                                  ? colorScheme.tertiary.withAlpha(100)
+                                  : colorScheme.outline.withAlpha(50),
+                              width: 1,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorScheme.tertiary,
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: _timerDuration != null
+                              ? colorScheme.tertiaryContainer.withAlpha(50)
+                              : colorScheme.surfaceContainerLow,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _timerDuration = value.isNotEmpty ? int.tryParse(value) : null;
+                          });
+                          HapticFeedbackUtil.lightImpact();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

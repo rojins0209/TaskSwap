@@ -5,7 +5,6 @@ import 'package:taskswap/widgets/notification_badge.dart';
 import 'package:taskswap/widgets/app_header.dart';
 import 'package:taskswap/services/task_service.dart';
 import 'package:taskswap/services/auth_service.dart';
-import 'package:taskswap/screens/tasks/completed_tasks_screen.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -83,18 +82,13 @@ class _TasksScreenState extends State<TasksScreen> {
                 // Notification badge
                 const NotificationBadge(),
 
-                // Completed tasks button
+                // Competitive challenges button
                 IconButton(
-                  icon: Icon(Icons.history, color: colorScheme.onSurface),
-                  tooltip: 'View completed tasks',
+                  icon: Icon(Icons.emoji_events_outlined, color: colorScheme.onSurface),
+                  tooltip: 'Competitive Challenges',
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CompletedTasksScreen(),
-                      ),
-                    );
+                    Navigator.pushNamed(context, '/competitive-challenges');
                   },
                 ),
 

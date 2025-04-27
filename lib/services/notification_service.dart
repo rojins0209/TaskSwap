@@ -4,37 +4,181 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:rxdart/rxdart.dart';
 import 'package:taskswap/models/notification_model.dart';
+import 'package:taskswap/utils/haptic_feedback_util.dart';
 
-// Simplified notification service for testing
+// Define the background message handler at the top level
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint("Handling a background message: ${message.messageId}");
+  // The system will automatically create a notification if the message contains a notification payload
+
+  // Note: We can't use HapticFeedbackUtil here because this runs in a separate isolate
+  // Haptic feedback will be provided when the user taps on the notification
+}
+
 class NotificationService {
+  static final NotificationService _instance = NotificationService._internal();
+
+  factory NotificationService() {
+    return _instance;
+  }
+
+  NotificationService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final String _collectionPath = 'notifications';
 
+  // Stream controller for notification taps
+  final BehaviorSubject<String?> selectNotificationSubject =
+      BehaviorSubject<String?>();
+
   // Initialize notification channels and request permissions
   Future<void> initNotifications() async {
-    // Request permission for iOS
-    await _messaging.requestPermission(
+    // Request permission for notifications
+    final NotificationSettings settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
+      provisional: false,
+      announcement: false,
+      carPlay: false,
+      criticalAlert: false,
     );
 
-    debugPrint('Notifications temporarily disabled for testing');
+    debugPrint('User granted permission: ${settings.authorizationStatus}');
+
+    // Get FCM token
+    final fcmToken = await _messaging.getToken();
+    debugPrint('FCM Token: $fcmToken');
+
+    // Save FCM token to Firestore
+    await saveFCMToken();
 
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+
+    // Set up background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // Handle notification taps when app is in background
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+
+    // Handle initial notification if app was opened from a terminated state
+    final RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      debugPrint('App opened from terminated state with notification: ${initialMessage.data}');
+      _handleNotificationTap(initialMessage);
+    }
+
+    debugPrint('FCM notifications initialized successfully');
   }
 
+  // Note: Notification channels are automatically created by FCM
+
   // Handle foreground messages
-  void _handleForegroundMessage(RemoteMessage message) {
+  void _handleForegroundMessage(RemoteMessage message) async {
     debugPrint('Got a message whilst in the foreground!');
     debugPrint('Message data: ${message.data}');
 
     if (message.notification != null) {
-      debugPrint('Message also contained a notification: ${message.notification}');
+      debugPrint('Message notification: ${message.notification}');
+      // Firebase will automatically show the notification
+
+      // Add haptic feedback based on notification type
+      final notificationType = message.data['type'];
+
+      if (notificationType != null) {
+        switch (notificationType) {
+          case 'challenge':
+            // Stronger feedback for challenges
+            await HapticFeedbackUtil.mediumImpact();
+            break;
+          case 'friendRequest':
+            // Medium feedback for friend requests
+            await HapticFeedbackUtil.mediumImpact();
+            break;
+          case 'friendAccepted':
+            // Success feedback for accepted friend requests
+            await HapticFeedbackUtil.success();
+            break;
+          case 'reminder':
+            // Medium feedback for reminders
+            await HapticFeedbackUtil.mediumImpact();
+            break;
+          case 'motivation':
+            // Light feedback for motivational messages
+            await HapticFeedbackUtil.lightImpact();
+            break;
+          default:
+            // Default light feedback for other notifications
+            await HapticFeedbackUtil.selectionClick();
+        }
+      } else {
+        // Default feedback if type is not specified
+        await HapticFeedbackUtil.selectionClick();
+      }
+    }
+  }
+
+  // Handle notification tap when app is in background
+  void _handleNotificationTap(RemoteMessage message) async {
+    debugPrint('Notification tapped in background state!');
+
+    // Provide haptic feedback when notification is tapped
+    await HapticFeedbackUtil.mediumImpact();
+
+    selectNotificationSubject.add(jsonEncode(message.data));
+  }
+
+  // Schedule a task reminder using FCM
+  Future<void> scheduleTaskReminder({
+    required String taskId,
+    required String taskTitle,
+    required DateTime dueDate,
+    int reminderMinutesBefore = 60, // Default 1 hour before
+  }) async {
+    try {
+      // For FCM, we need to use Firebase Cloud Functions to schedule reminders
+      // This will be implemented on the server side
+      debugPrint('Task reminder for "$taskTitle" will be handled by Firebase Cloud Functions');
+
+      // Store the reminder information in Firestore for the Cloud Function to use
+      final reminderTime = dueDate.subtract(Duration(minutes: reminderMinutesBefore));
+
+      // Don't schedule if the reminder time is in the past
+      if (reminderTime.isBefore(DateTime.now())) {
+        debugPrint('Reminder time is in the past, not scheduling');
+        return;
+      }
+
+      // Store reminder data in Firestore
+      await _firestore.collection('taskReminders').doc(taskId).set({
+        'taskId': taskId,
+        'taskTitle': taskTitle,
+        'userId': _auth.currentUser?.uid,
+        'reminderTime': Timestamp.fromDate(reminderTime),
+        'dueDate': Timestamp.fromDate(dueDate),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('Reminder data stored in Firestore for task "$taskTitle"');
+    } catch (e) {
+      debugPrint('Error scheduling task reminder: $e');
+    }
+  }
+
+  // Cancel a task reminder
+  Future<void> cancelTaskReminder(String taskId) async {
+    try {
+      // Remove the reminder from Firestore
+      await _firestore.collection('taskReminders').doc(taskId).delete();
+      debugPrint('Cancelled reminder for task ID: $taskId');
+    } catch (e) {
+      debugPrint('Error cancelling task reminder: $e');
     }
   }
 
@@ -46,6 +190,9 @@ class NotificationService {
   // Save FCM token to user document
   Future<void> saveFCMToken() async {
     try {
+      // Add a small delay to ensure auth state is fully updated
+      await Future.delayed(const Duration(milliseconds: 500));
+
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
         debugPrint('Cannot save FCM token: No authenticated user');
@@ -65,10 +212,16 @@ class NotificationService {
         return;
       }
 
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'fcmTokens': FieldValue.arrayUnion([token]),
-      });
-      debugPrint('FCM token saved successfully');
+      // Use a try-catch specifically for the Firestore operation
+      try {
+        await _firestore.collection('users').doc(currentUser.uid).update({
+          'fcmTokens': FieldValue.arrayUnion([token]),
+        });
+        debugPrint('FCM token saved successfully');
+      } catch (firestoreError) {
+        // Just log the Firestore error but don't rethrow
+        debugPrint('Firestore error saving FCM token: $firestoreError');
+      }
     } catch (e) {
       // Just log the error but don't rethrow to prevent login failures
       debugPrint('Error saving FCM token: $e');
@@ -425,6 +578,28 @@ class NotificationService {
     }
   }
 
+  // Create a notification for points earned
+  Future<String?> createPointsNotification({
+    required String userId,
+    required int points,
+    required String message,
+  }) async {
+    try {
+      // Create the notification
+      return await createNotification(
+        userId: userId,
+        type: NotificationType.auraReceived,
+        message: message,
+        data: {
+          'points': points,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error creating points notification: $e');
+      return null;
+    }
+  }
+
   // Create a system notification
   Future<String?> createSystemNotification({
     required String userId,
@@ -453,6 +628,32 @@ class NotificationService {
       return notificationId;
     } catch (e) {
       debugPrint('Error creating system notification: $e');
+      return null;
+    }
+  }
+
+  // Create a notification for challenge expired
+  Future<String?> createChallengeExpiredNotification({
+    required String userId,
+    required String taskTitle,
+    String? taskId,
+  }) async {
+    try {
+      // Create notification message
+      final notificationMessage = 'Your challenge "$taskTitle" has expired';
+
+      // Create the notification
+      return await createNotification(
+        userId: userId,
+        type: NotificationType.challengeExpired,
+        message: notificationMessage,
+        relatedTaskId: taskId,
+        data: {
+          'taskTitle': taskTitle,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error creating challenge expired notification: $e');
       return null;
     }
   }

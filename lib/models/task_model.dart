@@ -12,6 +12,9 @@ class Task {
   final int points;
   final TaskCategory category;
   final bool isChallenge;
+  final List<String>? challengeFriends; // List of friend IDs for challenges
+  final int? timerDuration; // Optional timer duration in minutes
+  final bool challengeYourself; // Whether this is a self-challenge with friends
 
   Task({
     this.id,
@@ -24,6 +27,9 @@ class Task {
     required this.points,
     this.category = TaskCategory.personal,
     this.isChallenge = false,
+    this.challengeFriends,
+    this.timerDuration,
+    this.challengeYourself = false,
   });
 
   // Convert Task object to a Map for Firestore
@@ -38,6 +44,9 @@ class Task {
       'points': points,
       'category': category.toString().split('.').last,
       'isChallenge': isChallenge,
+      'challengeFriends': challengeFriends,
+      'timerDuration': timerDuration,
+      'challengeYourself': challengeYourself,
     };
   }
 
@@ -53,6 +62,12 @@ class Task {
       return defaultValue;
     }
 
+    // Convert challengeFriends from dynamic to List<String>
+    List<String>? challengeFriends;
+    if (data['challengeFriends'] != null) {
+      challengeFriends = List<String>.from(data['challengeFriends']);
+    }
+
     return Task(
       id: doc.id,
       title: data['title'] ?? '',
@@ -64,6 +79,9 @@ class Task {
       points: getIntValue(data['points'], 0),
       category: TaskCategoryHelper.fromString(data['category']),
       isChallenge: data['isChallenge'] ?? false,
+      challengeFriends: challengeFriends,
+      timerDuration: data['timerDuration'] != null ? getIntValue(data['timerDuration'], 0) : null,
+      challengeYourself: data['challengeYourself'] ?? false,
     );
   }
 
@@ -79,6 +97,9 @@ class Task {
     int? points,
     TaskCategory? category,
     bool? isChallenge,
+    List<String>? challengeFriends,
+    int? timerDuration,
+    bool? challengeYourself,
   }) {
     return Task(
       id: id ?? this.id,
@@ -91,6 +112,9 @@ class Task {
       points: points ?? this.points,
       category: category ?? this.category,
       isChallenge: isChallenge ?? this.isChallenge,
+      challengeFriends: challengeFriends ?? this.challengeFriends,
+      timerDuration: timerDuration ?? this.timerDuration,
+      challengeYourself: challengeYourself ?? this.challengeYourself,
     );
   }
 }

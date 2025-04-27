@@ -18,7 +18,7 @@ class ChallengeService {
   final String _challengesCollectionPath = 'challenges';
 
   // Send a challenge to a friend
-  Future<void> sendChallenge(String toUserId, String taskDescription, {
+  Future<String> sendChallenge(String toUserId, String taskDescription, {
     int points = AppConstants.defaultChallengePoints,
     bool bothUsersComplete = false,
     DateTime? dueDate,
@@ -56,7 +56,8 @@ class ChallengeService {
       );
 
       // Add the challenge to Firestore
-      await _firestore.collection(_challengesCollectionPath).add(challenge.toMap());
+      final docRef = await _firestore.collection(_challengesCollectionPath).add(challenge.toMap());
+      final challengeId = docRef.id;
 
       // Create a notification for the challenge recipient
       String message = 'You received a new challenge: "$taskDescription"';
@@ -87,6 +88,9 @@ class ChallengeService {
           'challengeYourself': challengeYourself,
         },
       );
+
+      // Return the challenge ID
+      return challengeId;
     } catch (e) {
       debugPrint('Error sending challenge: $e');
       rethrow;
@@ -635,5 +639,126 @@ class ChallengeService {
       debugPrint('Error marking challenge as notified: $e');
       rethrow;
     }
+  }
+
+  // Update the progress of a challenge for the current user
+  Future<void> updateChallengeProgress(String challengeId, double progress) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Get the challenge data
+      final challengeDoc = await _firestore.collection(_challengesCollectionPath).doc(challengeId).get();
+      if (!challengeDoc.exists) {
+        throw Exception('Challenge not found');
+      }
+
+      final challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+      // Determine if the current user is the sender or receiver
+      final isSender = challengeData['fromUserId'] == currentUser.uid;
+      final isReceiver = challengeData['toUserId'] == currentUser.uid;
+
+      if (!isSender && !isReceiver) {
+        throw Exception('Not authorized to update this challenge');
+      }
+
+      // Ensure progress is between 0 and 1
+      final validProgress = progress.clamp(0.0, 1.0);
+
+      // Create update data map
+      final Map<String, dynamic> updateData = {};
+
+      // Update the appropriate progress field
+      if (isSender) {
+        updateData['senderProgress'] = validProgress;
+      } else {
+        updateData['receiverProgress'] = validProgress;
+      }
+
+      // If progress is 1.0, mark the user's part as completed
+      if (validProgress >= 1.0) {
+        if (isSender) {
+          updateData['senderCompleted'] = true;
+          updateData['senderCompletedAt'] = FieldValue.serverTimestamp();
+
+          // If this is the first to complete, mark as winner
+          if (!(challengeData['receiverCompleted'] ?? false) &&
+              challengeData['winnerUserId'] == null) {
+            updateData['winnerUserId'] = currentUser.uid;
+          }
+        } else {
+          updateData['receiverCompleted'] = true;
+          updateData['receiverCompletedAt'] = FieldValue.serverTimestamp();
+
+          // If this is the first to complete, mark as winner
+          if (!(challengeData['senderCompleted'] ?? false) &&
+              challengeData['winnerUserId'] == null) {
+            updateData['winnerUserId'] = currentUser.uid;
+          }
+        }
+      }
+
+      await _firestore.collection(_challengesCollectionPath).doc(challengeId).update(updateData);
+
+      // If both users have completed, handle challenge completion
+      final senderCompleted = isSender
+          ? validProgress >= 1.0
+          : (challengeData['senderCompleted'] ?? false);
+      final receiverCompleted = isReceiver
+          ? validProgress >= 1.0
+          : (challengeData['receiverCompleted'] ?? false);
+
+      if (senderCompleted && receiverCompleted) {
+        // If both have completed, mark the challenge as completed
+        await _firestore.collection(_challengesCollectionPath).doc(challengeId).update({
+          'status': 'completed',
+          'completedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Handle points distribution and notifications
+        if (isSender) {
+          await completeChallengeAsSender(challengeId);
+        } else {
+          await completeChallenge(challengeId);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating challenge progress: $e');
+      rethrow;
+    }
+  }
+
+  // Get challenges where the current user is competing with friends
+  Stream<List<Challenge>> getCompetitiveChallenges() {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return Stream.value([]);
+    }
+
+    return _firestore
+        .collection(_challengesCollectionPath)
+        .where('status', isEqualTo: 'accepted')
+        .where('challengeYourself', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+          final challenges = snapshot.docs
+              .map((doc) => Challenge.fromFirestore(doc))
+              .where((challenge) =>
+                  challenge.fromUserId == currentUser.uid ||
+                  challenge.toUserId == currentUser.uid)
+              .toList();
+
+          // Sort by most recent first
+          challenges.sort((a, b) {
+            if (a.createdAt == null) return 1;
+            if (b.createdAt == null) return -1;
+            return b.createdAt!.compareTo(a.createdAt!);
+          });
+
+          return challenges;
+        });
   }
 }

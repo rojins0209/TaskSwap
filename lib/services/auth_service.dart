@@ -55,21 +55,33 @@ class AuthService {
 
       // Save email if remember me is checked
       if (rememberMe) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('remembered_email', email);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('remembered_email', email);
+        } catch (prefsError) {
+          // Just log the error but don't let it affect the login process
+          debugPrint('Non-critical error saving remembered email: $prefsError');
+        }
       }
 
-      // Try to save FCM token, but don't let it fail the login process
-      try {
-        await _notificationService.saveFCMToken();
-      } catch (fcmError) {
-        // Just log the error but don't let it affect the login process
-        debugPrint('Non-critical error saving FCM token: $fcmError');
-      }
+      // Handle FCM token in a fire-and-forget manner
+      // This won't block the login process or cause errors to propagate
+      Future.microtask(() async {
+        try {
+          await _notificationService.saveFCMToken();
+        } catch (fcmError) {
+          // Just log the error but don't let it affect the login process
+          debugPrint('Non-critical error saving FCM token: $fcmError');
+        }
+      });
 
       return userCredential;
+    } on FirebaseAuthException {
+      // Rethrow Firebase auth exceptions for proper handling in the UI
+      rethrow;
     } catch (e) {
-      // Rethrow the original error for proper handling in the UI
+      // Log unexpected errors
+      debugPrint('Unexpected error during sign in: $e');
       rethrow;
     }
   }

@@ -196,6 +196,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         iconData = Icons.emoji_events;
         iconColor = Colors.amber;
         break;
+      case NotificationType.challengeExpired:
+        iconData = Icons.timer_off;
+        iconColor = Colors.red;
+        break;
       case NotificationType.friendRequest:
         iconData = Icons.person_add;
         iconColor = Colors.blue;
@@ -242,6 +246,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
+            // Use the lightest possible feedback
             HapticFeedback.selectionClick();
             if (!notification.read) {
               _markAsRead(notification.id!);
@@ -317,6 +322,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.challengeCompleted:
         if (notification.fromUserId != null) {
           _navigateToUserProfile(notification.fromUserId!);
+        }
+        break;
+      case NotificationType.challengeExpired:
+        // Navigate to the related task if available
+        if (notification.relatedTaskId != null) {
+          // Navigate to task details screen
+          // This would require implementing a navigation method to the task details screen
+          // For now, just mark as read
         }
         break;
       case NotificationType.friendRequest:
@@ -467,6 +480,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           TextButton(
             onPressed: () {
+              // Use the lightest possible feedback
               HapticFeedback.selectionClick();
               Navigator.pop(context);
             },
@@ -474,7 +488,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              HapticFeedback.mediumImpact();
+              // Use the lightest possible feedback even for destructive actions
+              HapticFeedback.selectionClick();
               Navigator.pop(context);
               _deleteAllNotifications();
             },

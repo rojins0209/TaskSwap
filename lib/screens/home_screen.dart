@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:taskswap/screens/tasks/enhanced_add_task_screen.dart';
 import 'package:taskswap/screens/tasks/tasks_screen.dart';
-import 'package:taskswap/screens/leaderboard/leaderboard_screen.dart';
 import 'package:taskswap/screens/profile/profile_screen.dart';
 import 'package:taskswap/screens/friends/friends_screen.dart';
-import 'package:taskswap/screens/feed/feed_screen.dart';
 import 'package:taskswap/widgets/pill_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -92,16 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Tasks',
           ),
           PillNavBarItem(
-            icon: Icons.rss_feed_outlined,
-            activeIcon: Icons.rss_feed,
-            label: 'Social',
-          ),
-          PillNavBarItem(
-            icon: Icons.leaderboard_outlined,
-            activeIcon: Icons.leaderboard,
-            label: 'Leaderboard',
-          ),
-          PillNavBarItem(
             icon: Icons.people_outline,
             activeIcon: Icons.people,
             label: 'Friends',
@@ -121,12 +109,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return _buildTasksTab();
       case 1:
-        return const FeedScreen();
-      case 2:
-        return const LeaderboardScreen();
-      case 3:
         return const FriendsScreen();
-      case 4:
+      case 2:
         return _buildProfileTab();
       default:
         return _buildTasksTab();
