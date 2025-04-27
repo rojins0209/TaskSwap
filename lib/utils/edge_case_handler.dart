@@ -34,7 +34,6 @@ class EdgeCaseHandler {
           .where('isCompleted', isEqualTo: false)
           .where('isChallenge', isEqualTo: true)
           .where('dueDate', isLessThan: Timestamp.fromDate(now))
-          .orderBy('dueDate')
           .get();
 
       if (expiredChallengesSnapshot.docs.isEmpty) {
