@@ -18,10 +18,10 @@ class WidgetService {
 
       // Create a simplified map with just the data needed for the widget
       final widgetData = {
-        'auraPoints': user.auraPoints ?? 0,
-        'streakCount': user.streakCount ?? 0,
-        'completedTasks': user.completedTasks ?? 0,
-        'totalTasks': user.totalTasks ?? 0,
+        'auraPoints': user.auraPoints,
+        'streakCount': user.streakCount,
+        'completedTasks': user.completedTasks,
+        'totalTasks': user.totalTasks,
       };
 
       // Save to SharedPreferences

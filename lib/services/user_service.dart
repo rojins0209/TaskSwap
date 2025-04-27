@@ -85,7 +85,12 @@ class UserService {
         );
 
         // Update widget data
-        _widgetService.updateUserStatsWidget(user);
+        try {
+          _widgetService.updateUserStatsWidget(user);
+        } catch (e) {
+          debugPrint('Error updating widget data: $e');
+          // Continue execution even if widget update fails
+        }
 
         return user;
       }
