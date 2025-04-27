@@ -15,7 +15,7 @@ class WidgetService {
   Future<bool> updateUserStatsWidget(UserModel user) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Create a simplified map with just the data needed for the widget
       final widgetData = {
         'auraPoints': user.auraPoints ?? 0,
@@ -23,10 +23,10 @@ class WidgetService {
         'completedTasks': user.completedTasks ?? 0,
         'totalTasks': user.totalTasks ?? 0,
       };
-      
+
       // Save to SharedPreferences
       final result = await prefs.setString(_userStatsKey, jsonEncode(widgetData));
-      
+
       debugPrint('Updated user stats widget data: $widgetData');
       return result;
     } catch (e) {
@@ -39,22 +39,22 @@ class WidgetService {
   Future<bool> updateTasksWidget(List<Task> tasks) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Filter to only include incomplete tasks and limit to 5
       final incompleteTasks = tasks
           .where((task) => !task.isCompleted)
           .take(5)
           .toList();
-      
+
       // Create a simplified list with just the data needed for the widget
       final widgetData = incompleteTasks.map((task) => {
         'title': task.title,
         'dueDate': task.dueDate?.millisecondsSinceEpoch,
       }).toList();
-      
+
       // Save to SharedPreferences
       final result = await prefs.setString(_tasksKey, jsonEncode(widgetData));
-      
+
       debugPrint('Updated tasks widget data with ${widgetData.length} tasks');
       return result;
     } catch (e) {
@@ -67,22 +67,23 @@ class WidgetService {
   Future<bool> updateChallengesWidget(List<Challenge> challenges) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Filter to only include active challenges and limit to 5
       final activeChallenges = challenges
-          .where((challenge) => !challenge.isCompleted)
+          .where((challenge) => challenge.status != ChallengeStatus.completed &&
+                               challenge.status != ChallengeStatus.rejected)
           .take(5)
           .toList();
-      
+
       // Create a simplified list with just the data needed for the widget
       final widgetData = activeChallenges.map((challenge) => {
         'taskDescription': challenge.taskDescription,
-        'fromUserName': challenge.fromUserName ?? 'Someone',
+        'fromUserName': 'From a friend', // We don't have fromUserName in the model
       }).toList();
-      
+
       // Save to SharedPreferences
       final result = await prefs.setString(_challengesKey, jsonEncode(widgetData));
-      
+
       debugPrint('Updated challenges widget data with ${widgetData.length} challenges');
       return result;
     } catch (e) {
@@ -99,22 +100,22 @@ class WidgetService {
   }) async {
     try {
       bool success = true;
-      
+
       if (user != null) {
         final userResult = await updateUserStatsWidget(user);
         success = success && userResult;
       }
-      
+
       if (tasks != null) {
         final tasksResult = await updateTasksWidget(tasks);
         success = success && tasksResult;
       }
-      
+
       if (challenges != null) {
         final challengesResult = await updateChallengesWidget(challenges);
         success = success && challengesResult;
       }
-      
+
       return success;
     } catch (e) {
       debugPrint('Error updating all widgets: $e');
