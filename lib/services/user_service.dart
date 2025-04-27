@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:taskswap/models/user_model.dart';
 import 'package:taskswap/services/notification_service.dart';
 import 'package:taskswap/services/cache_service.dart';
+import 'package:taskswap/services/widget_service.dart';
 
 // Time filter options for leaderboard
 enum TimeFilter { allTime, monthly, weekly }
@@ -21,6 +22,7 @@ class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final String _collectionPath = 'users';
   final NotificationService _notificationService = NotificationService();
+  final WidgetService _widgetService = WidgetService();
 
   // Create a new user
   Future<void> createUser(String userId, String email) async {
@@ -58,7 +60,7 @@ class UserService {
     }
   }
 
-  // Get user by ID with caching
+  // Get user by ID with enhanced caching
   Future<UserModel?> getUserById(String userId) async {
     try {
       // Check cache first
@@ -75,19 +77,127 @@ class UserService {
       if (doc.exists) {
         final user = UserModel.fromFirestore(doc);
 
-        // Save to cache for 30 minutes
+        // Save to cache for 1 hour (longer cache time for user data)
         await CacheService.saveToCache(
           cacheKey,
           user.toMap(),
-          expiry: const Duration(minutes: 30)
+          expiry: const Duration(hours: 1)
         );
+
+        // Update widget data
+        _widgetService.updateUserStatsWidget(user);
 
         return user;
       }
       return null;
     } catch (e) {
       debugPrint('Error getting user: $e');
+      // Return cached data if available, even if it's expired
+      try {
+        final cacheKey = 'user_$userId';
+        final cachedData = await CacheService.getFromCache(cacheKey);
+        if (cachedData != null) {
+          debugPrint('Returning expired cached user data due to error');
+          return UserModel.fromMap(cachedData);
+        }
+      } catch (_) {
+        // Ignore cache errors
+      }
       rethrow;
+    }
+  }
+
+  // Prefetch user data for faster access
+  Future<void> prefetchUserData(String userId) async {
+    try {
+      // Check if we already have this user in cache
+      final cacheKey = 'user_$userId';
+      final cachedData = await CacheService.getFromCache(cacheKey);
+
+      if (cachedData != null) {
+        // Already cached, no need to prefetch
+        return;
+      }
+
+      // Fetch user data and cache it
+      final user = await getUserById(userId);
+      if (user != null) {
+        debugPrint('Prefetched user data for $userId');
+      }
+    } catch (e) {
+      debugPrint('Error prefetching user data: $e');
+    }
+  }
+
+  // Get user's friends with caching
+  Future<List<UserModel>> getFriendsList(String userId) async {
+    try {
+      // Check cache first
+      final cacheKey = 'friends_$userId';
+      final cachedData = await CacheService.getFromCache(cacheKey);
+
+      if (cachedData != null && cachedData is List) {
+        debugPrint('Retrieved friends list for $userId from cache');
+        final List<UserModel> cachedFriends = [];
+        for (final userData in cachedData) {
+          if (userData is Map<String, dynamic>) {
+            try {
+              final user = UserModel.fromMap(userData);
+              cachedFriends.add(user);
+            } catch (e) {
+              debugPrint('Error parsing cached friend data: $e');
+            }
+          }
+        }
+
+        if (cachedFriends.isNotEmpty) {
+          return cachedFriends;
+        }
+      }
+
+      // Get the user document to access the friends list
+      final userDoc = await _firestore.collection(_collectionPath).doc(userId).get();
+
+      if (!userDoc.exists) {
+        return [];
+      }
+
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final List<String> friendIds = List<String>.from(userData['friends'] ?? []);
+
+      if (friendIds.isEmpty) {
+        return [];
+      }
+
+      // Get friend user documents
+      final List<UserModel> friends = [];
+
+      // Process in batches of 10 to avoid Firestore limitations
+      for (int i = 0; i < friendIds.length; i += 10) {
+        final end = (i + 10 < friendIds.length) ? i + 10 : friendIds.length;
+        final batch = friendIds.sublist(i, end);
+
+        final snapshot = await _firestore
+            .collection(_collectionPath)
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+
+        for (final doc in snapshot.docs) {
+          friends.add(UserModel.fromFirestore(doc));
+        }
+      }
+
+      // Cache the results
+      await CacheService.saveToCache(
+        cacheKey,
+        friends.map((friend) => friend.toMap()).toList(),
+        expiry: const Duration(minutes: 15)
+      );
+
+      return friends;
+    } catch (e) {
+      debugPrint('Error getting friends list: $e');
+      return [];
     }
   }
 
@@ -1066,7 +1176,7 @@ class UserService {
   }
 
   // Helper method to check leaderboard cache and emit cached data to controller
-  Future<void> _checkLeaderboardCache(String cacheKey, int limit, TimeFilter timeFilter) async {
+  Future<List<UserModel>?> _checkLeaderboardCache(String cacheKey, int limit, TimeFilter timeFilter) async {
     try {
       final cachedData = await CacheService.getFromCache(cacheKey);
       if (cachedData != null && cachedData is List) {
@@ -1086,14 +1196,103 @@ class UserService {
         }
 
         if (cachedUsers.isNotEmpty) {
-          // Emit cached data to controller
-          // This will be handled by the UI while waiting for the real-time update
-          debugPrint('Emitting ${cachedUsers.length} cached users to leaderboard');
+          // Return cached data to be emitted to the controller
+          debugPrint('Returning ${cachedUsers.length} cached users for leaderboard');
+          return cachedUsers;
         }
       }
+      return null;
     } catch (e) {
       debugPrint('Error checking leaderboard cache: $e');
       // Continue with normal operation if cache check fails
+      return null;
+    }
+  }
+
+  // Prefetch leaderboard data for faster initial load
+  Future<void> prefetchLeaderboardData(int limit, {TimeFilter timeFilter = TimeFilter.allTime}) async {
+    try {
+      final cacheKey = 'leaderboard_${timeFilter.toString()}_$limit';
+      final cachedData = await CacheService.getFromCache(cacheKey);
+
+      if (cachedData != null) {
+        // Already cached, no need to prefetch
+        return;
+      }
+
+      // Get current user for privacy filtering
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return;
+
+      // Start with a basic query
+      Query query = _firestore.collection(_collectionPath);
+
+      // Apply time filter if needed
+      if (timeFilter != TimeFilter.allTime) {
+        // Calculate the start date based on the time filter
+        DateTime startDate;
+        final now = DateTime.now();
+
+        if (timeFilter == TimeFilter.weekly) {
+          startDate = DateTime(now.year, now.month, now.day - now.weekday + 1);
+        } else if (timeFilter == TimeFilter.monthly) {
+          startDate = DateTime(now.year, now.month, 1);
+        } else {
+          startDate = DateTime(2000, 1, 1);
+        }
+
+        // Convert to Timestamp for Firestore query
+        final startTimestamp = Timestamp.fromDate(startDate);
+        query = query.where('lastPointsEarnedAt', isGreaterThanOrEqualTo: startTimestamp);
+      }
+
+      // Order by points and get data
+      final snapshot = await query
+          .orderBy('auraPoints', descending: true)
+          .limit(limit * 2) // Get more to filter
+          .get();
+
+      // Filter and process users
+      List<UserModel> users = snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+      List<UserModel> filteredUsers = [];
+
+      // Filter based on privacy settings
+      for (final user in users) {
+        // Always include the current user
+        if (user.id == currentUser.uid) {
+          filteredUsers.add(user);
+          continue;
+        }
+
+        // Include public users
+        if (user.auraVisibility == AuraVisibility.public) {
+          filteredUsers.add(user);
+          continue;
+        }
+
+        // Include friends-only users if the current user is a friend
+        if (user.auraVisibility == AuraVisibility.friends && user.friends.contains(currentUser.uid)) {
+          filteredUsers.add(user);
+          continue;
+        }
+      }
+
+      // Limit to the requested number of users
+      if (filteredUsers.length > limit) {
+        filteredUsers = filteredUsers.sublist(0, limit);
+      }
+
+      // Cache the filtered users
+      if (filteredUsers.isNotEmpty) {
+        await CacheService.saveToCache(
+          cacheKey,
+          filteredUsers.map((user) => user.toMap()).toList(),
+          expiry: const Duration(minutes: 10) // Shorter expiry for leaderboard data
+        );
+        debugPrint('Prefetched and cached leaderboard data: $cacheKey');
+      }
+    } catch (e) {
+      debugPrint('Error prefetching leaderboard data: $e');
     }
   }
 

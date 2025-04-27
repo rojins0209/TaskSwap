@@ -8,6 +8,7 @@ import 'package:taskswap/models/task_category.dart';
 import 'package:taskswap/services/user_service.dart';
 import 'package:taskswap/services/activity_service.dart';
 import 'package:taskswap/services/notification_service.dart';
+import 'package:taskswap/services/widget_service.dart';
 
 class ChallengeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -15,6 +16,7 @@ class ChallengeService {
   final UserService _userService = UserService();
   final ActivityService _activityService = ActivityService();
   final NotificationService _notificationService = NotificationService();
+  final WidgetService _widgetService = WidgetService();
   final String _challengesCollectionPath = 'challenges';
 
   // Send a challenge to a friend
@@ -464,6 +466,9 @@ class ChallengeService {
             if (b.createdAt == null) return -1;
             return b.createdAt!.compareTo(a.createdAt!);
           });
+
+          // Update widget data
+          _widgetService.updateChallengesWidget(challenges);
 
           return challenges;
         });
