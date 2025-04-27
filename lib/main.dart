@@ -35,6 +35,9 @@ void main() async {
     // Initialize security provider to handle SSL/TLS updates
     await SecurityProvider.initialize();
 
+    // Suppress security provider warnings in logs
+    SecurityProvider.suppressWarnings();
+
     // Initialize Firebase
     await Firebase.initializeApp();
 
