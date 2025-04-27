@@ -29,6 +29,9 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
+  // Track the completion state locally
+  late bool _isCompleted;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +46,20 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
         curve: Curves.easeInOut,
       ),
     );
+
+    // Initialize the local completion state from the task
+    _isCompleted = widget.task.isCompleted;
+  }
+
+  @override
+  void didUpdateWidget(ModernTaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update the local completion state if the task changes
+    if (widget.task.isCompleted != oldWidget.task.isCompleted) {
+      setState(() {
+        _isCompleted = widget.task.isCompleted;
+      });
+    }
   }
 
   @override
@@ -76,11 +93,9 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: widget.isCompletedSection
-                ? colorScheme.surfaceContainerLowest
-                : widget.task.isCompleted
-                    ? colorScheme.surfaceContainerLow
-                    : colorScheme.surface,
+            color: widget.isCompletedSection || _isCompleted
+                ? colorScheme.surfaceContainerLow
+                : colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: widget.isCompletedSection
                 ? []
@@ -94,8 +109,8 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                     ),
                   ],
             border: Border.all(
-              color: widget.isCompletedSection
-                  ? colorScheme.outlineVariant
+              color: _isCompleted
+                  ? colorScheme.outline.withAlpha(100)
                   : _isHovered
                       ? colorScheme.primary.withAlpha(77) // opacity 0.3
                       : colorScheme.outlineVariant,
@@ -141,18 +156,108 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                             onTap: () async {
                               if (widget.task.id != null) {
                                 try {
-                                  if (!widget.task.isCompleted) {
-                                    // Mark task as completed
-                                    await taskService.markTaskAsCompleted(widget.task.id!);
+                                  // Show loading indicator
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Updating task...'),
+                                      duration: Duration(milliseconds: 500),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+
+                                  if (!_isCompleted) {
+                                    try {
+                                      // Mark task as completed
+                                      final result = await taskService.markTaskAsCompleted(widget.task.id!);
+
+                                      // Check if there was an error
+                                      if (result.containsKey('error') && result['error'] != null) {
+                                        throw Exception(result['error']);
+                                      }
+
+                                      // Update local state to show completion immediately
+                                      setState(() {
+                                        _isCompleted = true;
+                                      });
+
+                                      // Notify parent to update the task lists
+                                      widget.onTaskUpdated();
+
+                                      // Show success message
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                Icon(Icons.check_circle, color: Colors.white),
+                                                const SizedBox(width: 8),
+                                                const Text('Task completed!'),
+                                              ],
+                                            ),
+                                            backgroundColor: Colors.green,
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      debugPrint('Error completing task: $e');
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Error completing task: $e'),
+                                            behavior: SnackBarBehavior.floating,
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
                                   } else {
-                                    // Mark task as incomplete
-                                    final task = widget.task.copyWith(isCompleted: false);
-                                    await taskService.updateTask(widget.task.id!, task);
+                                    try {
+                                      // Mark task as incomplete
+                                      final task = widget.task.copyWith(isCompleted: false);
+                                      await taskService.updateTask(widget.task.id!, task);
+
+                                      // Update local state to show incompletion immediately
+                                      setState(() {
+                                        _isCompleted = false;
+                                      });
+
+                                      // Notify parent to update the task lists
+                                      widget.onTaskUpdated();
+
+                                      // Show info message
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                Icon(Icons.info, color: Colors.white),
+                                                const SizedBox(width: 8),
+                                                const Text('Task marked as incomplete'),
+                                              ],
+                                            ),
+                                            backgroundColor: Colors.blue,
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      debugPrint('Error marking task as incomplete: $e');
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Error marking task as incomplete: $e'),
+                                            behavior: SnackBarBehavior.floating,
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
                                   }
-                                  widget.onTaskUpdated();
 
                                   // Provide enhanced haptic feedback based on completion state
-                                  if (!widget.task.isCompleted) {
+                                  if (_isCompleted) {
                                     // Task completed - stronger feedback
                                     HapticFeedbackUtil.taskCompleted();
                                   } else {
@@ -165,6 +270,7 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                                       SnackBar(
                                         content: Text('Error updating task: $e'),
                                         behavior: SnackBarBehavior.floating,
+                                        backgroundColor: Colors.red,
                                       ),
                                     );
                                   }
@@ -177,17 +283,17 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                               height: 24,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: widget.task.isCompleted
+                                color: _isCompleted
                                     ? colorScheme.primary
                                     : Colors.transparent,
                                 border: Border.all(
-                                  color: widget.task.isCompleted
+                                  color: _isCompleted
                                       ? colorScheme.primary
                                       : colorScheme.outline,
                                   width: 2,
                                 ),
                               ),
-                              child: widget.task.isCompleted
+                              child: _isCompleted
                                   ? Icon(
                                       Icons.check,
                                       size: 16,
@@ -207,13 +313,15 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                               Text(
                                 widget.task.title,
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  decoration: widget.task.isCompleted
+                                  decoration: _isCompleted
                                       ? TextDecoration.lineThrough
                                       : null,
-                                  color: widget.task.isCompleted
+                                  color: _isCompleted
                                       ? colorScheme.onSurfaceVariant
                                       : colorScheme.onSurface,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: _isCompleted
+                                      ? FontWeight.normal
+                                      : FontWeight.w600,
                                 ),
                               ),
                               if (widget.task.description.isNotEmpty) ...[
@@ -221,10 +329,15 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                                 Text(
                                   widget.task.description,
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                    decoration: widget.task.isCompleted
+                                    color: _isCompleted
+                                        ? colorScheme.onSurfaceVariant.withAlpha(180)
+                                        : colorScheme.onSurfaceVariant,
+                                    decoration: _isCompleted
                                         ? TextDecoration.lineThrough
                                         : null,
+                                    fontStyle: _isCompleted
+                                        ? FontStyle.italic
+                                        : FontStyle.normal,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -256,7 +369,7 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
                     ),
 
                     // Due date and actions
-                    if (!widget.task.isCompleted && !widget.isCompletedSection) ...[
+                    if (!_isCompleted && !widget.isCompletedSection) ...[
                       const SizedBox(height: 12),
                       const Divider(height: 1),
                       const SizedBox(height: 12),
@@ -510,7 +623,7 @@ class _ModernTaskCardState extends State<ModernTaskCard> with SingleTickerProvid
   bool _isTaskOverdue() {
     if (widget.task.dueDate == null) return false;
     final now = DateTime.now();
-    return widget.task.dueDate!.isBefore(now) && !widget.task.isCompleted;
+    return widget.task.dueDate!.isBefore(now) && !_isCompleted;
   }
 
   void _showChallengeDialog(BuildContext context) {

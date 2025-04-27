@@ -972,6 +972,15 @@ class TaskService {
               isChallenge: task.isChallenge,
               category: task.category.toString().split('.').last,
             );
+
+            // Create a task completed notification
+            await _notificationService.createTaskCompletedNotification(
+              userId: userId ?? task.createdBy,
+              taskTitle: task.title,
+              isChallenge: task.isChallenge,
+              points: task.isChallenge ? task.points : 0,
+              taskId: taskId,
+            );
           }
 
           // Prepare reward details to return

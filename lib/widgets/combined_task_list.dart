@@ -14,7 +14,14 @@ import 'package:confetti/confetti.dart';
 import 'package:shimmer/shimmer.dart';
 
 class CombinedTaskList extends StatefulWidget {
-  const CombinedTaskList({super.key});
+  final bool showCompletedTasks;
+  final VoidCallback? onTasksUpdated;
+
+  const CombinedTaskList({
+    super.key,
+    this.showCompletedTasks = false,
+    this.onTasksUpdated,
+  });
 
   @override
   State<CombinedTaskList> createState() => _CombinedTaskListState();
@@ -35,10 +42,22 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+
+    // Add listener to tab controller to update UI when tab changes
+    _tabController.addListener(_handleTabChange);
+  }
+
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) {
+      // Force rebuild when tab changes
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    // Remove listener before disposing
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _confettiController.dispose();
     super.dispose();
@@ -593,7 +612,12 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
 
     // Use a more efficient approach with caching
     return StreamBuilder<List<Task>>(
-      stream: _taskService.getUserTasks(currentUser.uid),
+      stream: _taskService.getUserTasks(currentUser.uid).map((tasks) {
+        // Filter tasks based on completion status
+        return tasks.where((task) =>
+          widget.showCompletedTasks ? task.isCompleted : !task.isCompleted
+        ).toList();
+      }),
       builder: (context, snapshot) {
         // Show shimmer loading effect instead of spinner for better UX
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -615,89 +639,93 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
         if (tasks.isEmpty) {
           return Center(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Modern empty state illustration
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 180,
-                        height: 180,
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              Theme.of(context).colorScheme.primary.withAlpha(26),
-                              Theme.of(context).colorScheme.primary.withAlpha(13),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.6, 1.0],
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withAlpha(20),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).colorScheme.shadow.withAlpha(26),
-                              blurRadius: 10,
-                              spreadRadius: 0,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Modern empty state illustration
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 180,
+                          height: 180,
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              colors: [
+                                Theme.of(context).colorScheme.primary.withAlpha(26),
+                                Theme.of(context).colorScheme.primary.withAlpha(13),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.6, 1.0],
                             ),
-                          ],
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.primary.withAlpha(51),
-                            width: 2,
+                            shape: BoxShape.circle,
                           ),
                         ),
-                        child: Icon(
-                          Icons.check_circle_outline,
-                          size: 50,
-                          color: Theme.of(context).colorScheme.primary,
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withAlpha(20),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'No Tasks Yet',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).colorScheme.shadow.withAlpha(26),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.primary.withAlpha(51),
+                              width: 2,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.check_circle_outline,
+                            size: 50,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'Add your first task by tapping the + button below',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.5,
+                    const SizedBox(height: 32),
+                    Text(
+                      'No Tasks Yet',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Add a hint arrow pointing to the FAB
-                  Icon(
-                    Icons.arrow_downward,
-                    size: 24,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'Add your first task by tapping the + button below',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Add a hint arrow pointing to the FAB
+                    Icon(
+                      Icons.arrow_downward,
+                      size: 24,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -775,7 +803,14 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
                         return ModernTaskCard(
                           task: task,
                           onTaskUpdated: () {
+                            // Force a rebuild of the task list
                             setState(() {});
+                            // Notify parent to update task stats
+                            if (widget.onTasksUpdated != null) {
+                              widget.onTasksUpdated!();
+                            }
+                            // Update task counts in Firestore
+                            _updateTaskCounts(incompleteTasks.length - 1, completedTasks.length + 1);
                           },
                         );
                       },
@@ -821,7 +856,14 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
                         return ModernTaskCard(
                           task: task,
                           onTaskUpdated: () {
+                            // Force a rebuild of the task list
                             setState(() {});
+                            // Notify parent to update task stats
+                            if (widget.onTasksUpdated != null) {
+                              widget.onTasksUpdated!();
+                            }
+                            // Update task counts in Firestore
+                            _updateTaskCounts(incompleteTasks.length + 1, completedTasks.length - 1);
                           },
                           isCompletedSection: true,
                         );
@@ -922,29 +964,33 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
         if (challenges.isEmpty) {
           return Center(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.emoji_events_outlined,
-                    size: 80,
-                    color: AppTheme.accentColor.withAlpha(51),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'No Pending Challenges',
-                    style: AppTheme.headingMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'When friends challenge you, they will appear here',
-                      style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondaryColor),
-                      textAlign: TextAlign.center,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.emoji_events_outlined,
+                      size: 80,
+                      color: AppTheme.accentColor.withAlpha(51),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    Text(
+                      'No Pending Challenges',
+                      style: AppTheme.headingMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'When friends challenge you, they will appear here',
+                        style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondaryColor),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -966,34 +1012,37 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
   Widget _buildShimmerLoading() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Shimmer.fromColors(
-        baseColor: AppTheme.shimmerBaseColor,
-        highlightColor: AppTheme.shimmerHighlightColor,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Section title shimmer
-            Container(
-              width: 120,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Task card shimmers
-            for (int i = 0; i < 5; i++) ...[
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Shimmer.fromColors(
+          baseColor: AppTheme.shimmerBaseColor,
+          highlightColor: AppTheme.shimmerHighlightColor,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Section title shimmer
               Container(
-                height: 80,
+                width: 120,
+                height: 24,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              // Task card shimmers - reduced to 4 to fit better
+              for (int i = 0; i < 4; i++) ...[
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -1022,29 +1071,33 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
         if (challenges.isEmpty) {
           return Center(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.send_outlined,
-                    size: 80,
-                    color: AppTheme.accentColor.withAlpha(51),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'No Sent Challenges',
-                    style: AppTheme.headingMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'Challenge your friends to complete tasks',
-                      style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondaryColor),
-                      textAlign: TextAlign.center,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.send_outlined,
+                      size: 80,
+                      color: AppTheme.accentColor.withAlpha(51),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    Text(
+                      'No Sent Challenges',
+                      style: AppTheme.headingMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'Challenge your friends to complete tasks',
+                        style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondaryColor),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -1085,29 +1138,33 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
         if (challenges.isEmpty) {
           return Center(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.task_alt,
-                    size: 80,
-                    color: AppTheme.accentColor.withAlpha(51),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'No Active Challenges',
-                    style: AppTheme.headingMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'Challenges you\'ve accepted will appear here',
-                      style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondaryColor),
-                      textAlign: TextAlign.center,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.task_alt,
+                      size: 80,
+                      color: AppTheme.accentColor.withAlpha(51),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    Text(
+                      'No Active Challenges',
+                      style: AppTheme.headingMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'Challenges you\'ve accepted will appear here',
+                        style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondaryColor),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

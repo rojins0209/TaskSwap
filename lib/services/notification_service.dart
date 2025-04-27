@@ -658,6 +658,41 @@ class NotificationService {
     }
   }
 
+  // Create a notification for task completed
+  Future<String?> createTaskCompletedNotification({
+    required String userId,
+    required String taskTitle,
+    required bool isChallenge,
+    int? points,
+    String? taskId,
+  }) async {
+    try {
+      // Create notification message
+      String notificationMessage;
+      if (isChallenge && points != null && points > 0) {
+        notificationMessage = 'You completed "$taskTitle" and earned $points aura points!';
+      } else {
+        notificationMessage = 'You completed "$taskTitle"';
+      }
+
+      // Create the notification
+      return await createNotification(
+        userId: userId,
+        type: NotificationType.taskCompleted,
+        message: notificationMessage,
+        relatedTaskId: taskId,
+        data: {
+          'taskTitle': taskTitle,
+          'isChallenge': isChallenge,
+          'points': points,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error creating task completed notification: $e');
+      return null;
+    }
+  }
+
   // Send a push notification to a user - temporarily disabled for testing
   /*
   Future<void> _sendPushNotification({
