@@ -188,9 +188,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
+      // Validate user ID
+      final String userId = widget.userProfile.id;
+      if (userId.isEmpty) {
+        throw ArgumentError('User ID is empty. Cannot update profile.');
+      }
+
       // Update user profile (just the display name)
       await _userService.updateUserProfile(
-        widget.userProfile.id,
+        userId,
         displayName: displayName,
       );
 
@@ -216,6 +222,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           errorMessage = 'You don\'t have permission to update this profile';
         } else if (e.toString().contains('network')) {
           errorMessage = 'Network error. Please check your connection and try again';
+        } else if (e.toString().contains('User ID')) {
+          errorMessage = 'Invalid user ID. Please try logging out and back in.';
+        } else if (e.toString().contains('not-found')) {
+          errorMessage = 'User profile not found. Please try logging out and back in.';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

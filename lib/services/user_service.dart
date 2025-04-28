@@ -1057,8 +1057,13 @@ class UserService {
   }
 
   // Update user profile
-  Future<void> updateUserProfile(String userId, {String? displayName, String? photoUrl}) async {
+  Future<void> updateUserProfile(String? userId, {String? displayName, String? photoUrl}) async {
     try {
+      // Validate userId
+      if (userId == null || userId.trim().isEmpty) {
+        throw ArgumentError('User ID cannot be null or empty');
+      }
+
       final updates = <String, dynamic>{};
 
       if (displayName != null) {
@@ -1070,7 +1075,9 @@ class UserService {
       }
 
       if (updates.isNotEmpty) {
-        await _firestore.collection(_collectionPath).doc(userId).update(updates);
+        // Use the trimmed userId to ensure no whitespace issues
+        final String trimmedUserId = userId.trim();
+        await _firestore.collection(_collectionPath).doc(trimmedUserId).update(updates);
       }
     } catch (e) {
       debugPrint('Error updating user profile: $e');
@@ -1079,11 +1086,16 @@ class UserService {
   }
 
   // Update user privacy settings
-  Future<void> updatePrivacySettings(String userId, {
+  Future<void> updatePrivacySettings(String? userId, {
     AuraVisibility? auraVisibility,
     AllowAuraFrom? allowAuraFrom,
   }) async {
     try {
+      // Validate userId
+      if (userId == null || userId.trim().isEmpty) {
+        throw ArgumentError('User ID cannot be null or empty');
+      }
+
       final updates = <String, dynamic>{};
 
       if (auraVisibility != null) {
@@ -1095,7 +1107,9 @@ class UserService {
       }
 
       if (updates.isNotEmpty) {
-        await _firestore.collection(_collectionPath).doc(userId).update(updates);
+        // Use the trimmed userId to ensure no whitespace issues
+        final String trimmedUserId = userId.trim();
+        await _firestore.collection(_collectionPath).doc(trimmedUserId).update(updates);
       }
     } catch (e) {
       debugPrint('Error updating privacy settings: $e');
