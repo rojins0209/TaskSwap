@@ -31,19 +31,19 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
   List<UserModel> _searchResults = [];
   bool _isSearching = false;
 
-  // Create broadcast streams to avoid "Stream has already been listened to" errors
-  late Stream<List<UserModel>> _friendsStream;
-  late Stream<List<FriendRequest>> _requestsStream;
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabChange);
     _loadUserRank();
+  }
 
-    // Initialize broadcast streams
-    _friendsStream = _friendService.getFriends().asBroadcastStream();
-    _requestsStream = _friendService.getPendingFriendRequests().asBroadcastStream();
+  void _handleTabChange() {
+    // This will trigger a rebuild when the tab changes
+    if (_tabController.indexIsChanging) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadUserRank() async {
@@ -65,6 +65,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -256,66 +257,142 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                               ),
                             ),
                           ],
-                        ).animate()
-                          .fade(duration: const Duration(milliseconds: 400))
-                          .slideX(begin: -0.1, end: 0, duration: const Duration(milliseconds: 400)),
+                        ),
 
-                        // Action buttons
-                        Row(
-                          children: [
-                            // Notifications button
-                            IconButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Friend notifications coming soon!'),
-                                    behavior: SnackBarBehavior.floating,
+                        // Friend Requests Section
+                        FutureBuilder<List<FriendRequest>>(
+                          future: _friendService.getPendingFriendRequests().first,
+                          builder: (context, snapshot) {
+                            final requests = snapshot.data ?? [];
+                            final requestCount = requests.length;
+
+                            if (requestCount == 0) {
+                              // If no requests, show empty request state
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: colorScheme.outlineVariant.withAlpha(128),
+                                    width: 1,
                                   ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.person_add_alt_1_rounded,
+                                      size: 18,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'No Friend Requests',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            // If there are requests, show the first one with accept/reject buttons
+                            return FutureBuilder<UserModel?>(
+                              future: _userService.getUserById(requests[0].fromUserId),
+                              builder: (context, userSnapshot) {
+                                if (!userSnapshot.hasData || userSnapshot.data == null) {
+                                  return const CircularProgressIndicator();
+                                }
+
+                                final user = userSnapshot.data!;
+
+                                return Row(
+                                  children: [
+                                    // Request info
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // User avatar
+                                          CircleAvatar(
+                                            radius: 16,
+                                            backgroundColor: _getAvatarColor(user.email),
+                                            child: Text(
+                                              user.email.isNotEmpty ? user.email[0].toUpperCase() : '?',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // User name
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                user.displayName ?? user.email.split('@')[0],
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              Text(
+                                                'Friend Request',
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 8),
+
+                                    // Accept button
+                                    IconButton.filled(
+                                      onPressed: () {
+                                        // Use the lightest possible feedback
+                                        HapticFeedback.selectionClick();
+                                        _acceptFriendRequest(requests[0].fromUserId);
+                                      },
+                                      icon: const Icon(Icons.check, size: 20),
+                                      tooltip: 'Accept',
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.green.withAlpha(40),
+                                        foregroundColor: Colors.green,
+                                      ),
+                                    ),
+
+                                    // Reject button
+                                    IconButton.filled(
+                                      onPressed: () {
+                                        // Use the lightest possible feedback
+                                        HapticFeedback.selectionClick();
+                                        _rejectFriendRequest(requests[0].fromUserId);
+                                      },
+                                      icon: const Icon(Icons.close, size: 20),
+                                      tooltip: 'Reject',
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.red.withAlpha(40),
+                                        foregroundColor: Colors.red,
+                                      ),
+                                    ),
+                                  ],
                                 );
                               },
-                              icon: Icon(
-                                Icons.notifications_outlined,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              tooltip: 'Notifications',
-                            ),
-
-                            // Add friend button
-                            IconButton(
-                              onPressed: () {
-                                // Focus the search field
-                                HapticFeedback.mediumImpact();
-                                FocusScope.of(context).requestFocus(FocusNode());
-                                _searchController.clear();
-                                setState(() {
-                                  _searchResults = [];
-                                });
-                                // Scroll to search field
-                                // Create a focus node that we can use later
-                                final focusNode = FocusNode();
-                                Future.delayed(const Duration(milliseconds: 100), () {
-                                  if (mounted) {
-                                    _searchController.text = '';
-                                    focusNode.requestFocus();
-                                  }
-                                  // Dispose the focus node to avoid memory leaks
-                                  focusNode.dispose();
-                                });
-                              },
-                              icon: Icon(
-                                Icons.person_add_alt_rounded,
-                                color: colorScheme.primary,
-                              ),
-                              tooltip: 'Add new friend',
-                              style: IconButton.styleFrom(
-                                backgroundColor: colorScheme.primaryContainer,
-                                padding: const EdgeInsets.all(8),
-                              ),
-                            ),
-                          ],
-                        ).animate()
-                          .fade(duration: const Duration(milliseconds: 400))
-                          .slideX(begin: 0.1, end: 0, duration: const Duration(milliseconds: 400)),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -323,9 +400,10 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                   // Stats cards
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                    child: StreamBuilder<List<UserModel>>(
-                      stream: _friendsStream,
+                    child: FutureBuilder<List<UserModel>>(
+                      future: _friendService.getFriends().first,
                       builder: (context, snapshot) {
+                        // Get the friend count from the snapshot
                         final friendCount = snapshot.data?.length ?? 0;
 
                         return Row(
@@ -350,26 +428,6 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                                 title: _currentUserRank != null ? '#$_currentUserRank' : '-',
                                 subtitle: 'Your Rank',
                                 delay: 200,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-
-                            // Tasks count card (placeholder)
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.task_alt_rounded,
-                                iconColor: Colors.teal,
-                                title: '0',
-                                subtitle: 'Tasks',
-                                delay: 300,
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Task stats coming soon!'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
                               ),
                             ),
                           ],
@@ -418,6 +476,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                 unselectedLabelStyle: theme.textTheme.titleSmall,
                 padding: const EdgeInsets.all(4),
                 onTap: (index) {
+                  // Use the lightest possible feedback
                   HapticFeedback.selectionClick();
                 },
                 tabs: [
@@ -426,8 +485,8 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                       clipBehavior: Clip.none,
                       children: [
                         const Icon(Icons.people_rounded, size: 20),
-                        StreamBuilder<List<UserModel>>(
-                          stream: _friendsStream,
+                        FutureBuilder<List<UserModel>>(
+                          future: _friendService.getFriends().first,
                           builder: (context, snapshot) {
                             final friendCount = snapshot.data?.length ?? 0;
                             if (friendCount == 0) return const SizedBox.shrink();
@@ -458,8 +517,8 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                           },
                         ),
                         // Show friend request indicator if there are any
-                        StreamBuilder<List<FriendRequest>>(
-                          stream: _requestsStream,
+                        FutureBuilder<List<FriendRequest>>(
+                          future: _friendService.getPendingFriendRequests().first,
                           builder: (context, snapshot) {
                             final requestCount = snapshot.data?.length ?? 0;
                             if (requestCount == 0) return const SizedBox.shrink();
@@ -494,9 +553,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                   ),
                 ],
               ),
-            ).animate()
-              .fade(duration: const Duration(milliseconds: 400), delay: const Duration(milliseconds: 200))
-              .slideY(begin: 0.2, end: 0, duration: const Duration(milliseconds: 400)),
+            ),
 
             // Main content
             Expanded(
@@ -623,9 +680,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                         ],
                       ),
                     ),
-                  ).animate()
-                    .fade(duration: const Duration(milliseconds: 400), delay: const Duration(milliseconds: 300))
-                    .slideY(begin: 0.2, end: 0, duration: const Duration(milliseconds: 400)),
+                  ),
 
                   // Search results or tab content
                   Expanded(
@@ -709,9 +764,8 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                                     ],
                                   ),
                                 )
-                              : TabBarView(
-                                  key: const ValueKey('tab_content'),
-                                  controller: _tabController,
+                              : IndexedStack(
+                                  index: _tabController.index,
                                   children: [
                                     // My Friends tab (now includes requests)
                                     _buildFriendsTab(),
@@ -732,114 +786,115 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
   }
 
   Widget _buildFriendsTab() {
-    return StreamBuilder<List<FriendRequest>>(
-      stream: _requestsStream,
-      builder: (context, requestsSnapshot) {
-        final requests = requestsSnapshot.data ?? [];
-
-        return StreamBuilder<List<UserModel>>(
-          stream: _friendsStream,
-          builder: (context, friendsSnapshot) {
-            if (friendsSnapshot.connectionState == ConnectionState.waiting &&
-                requestsSnapshot.connectionState == ConnectionState.waiting) {
+    // Use a StatefulBuilder to avoid rebuilding the entire widget tree
+    return StatefulBuilder(
+      builder: (context, setState) {
+        // Use ValueListenables to avoid stream subscription issues
+        return FutureBuilder<List<dynamic>>(
+          future: Future.wait([
+            _friendService.getFriends().first, // Get the first value from the stream
+            _friendService.getPendingFriendRequests().first, // Get the first value from the stream
+          ]),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(),
               );
             }
 
-            if (friendsSnapshot.hasError) {
+            if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  'Error loading friends: ${friendsSnapshot.error}',
+                  'Error loading friends: ${snapshot.error}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error),
                   textAlign: TextAlign.center,
                 ),
               );
             }
 
-            final friends = friendsSnapshot.data ?? [];
+            final friends = snapshot.data?[0] as List<UserModel>? ?? [];
+            final requests = snapshot.data?[1] as List<FriendRequest>? ?? [];
+
             final hasContent = friends.isNotEmpty || requests.isNotEmpty;
 
             if (!hasContent) {
               final theme = Theme.of(context);
               final colorScheme = theme.colorScheme;
 
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer.withAlpha(50),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.people_alt_rounded,
-                        size: 60,
-                        color: colorScheme.primary.withAlpha(180),
-                      ),
-                    ).animate()
-                      .fade(duration: const Duration(milliseconds: 600))
-                      .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.0, 1.0), duration: const Duration(milliseconds: 500)),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Connect with Friends',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ).animate()
-                      .fade(duration: const Duration(milliseconds: 600), delay: const Duration(milliseconds: 200))
-                      .slideY(begin: 0.2, end: 0, duration: const Duration(milliseconds: 500)),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Text(
-                        'Add friends to challenge each other and stay motivated together!',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+              return SingleChildScrollView(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer.withAlpha(50),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.people_alt_rounded,
+                            size: 60,
+                            color: colorScheme.primary.withAlpha(180),
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ).animate()
-                      .fade(duration: const Duration(milliseconds: 600), delay: const Duration(milliseconds: 300))
-                      .slideY(begin: 0.2, end: 0, duration: const Duration(milliseconds: 500)),
-                    const SizedBox(height: 32),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // Focus the search field
-                        FocusScope.of(context).requestFocus(FocusNode());
-                        _searchController.clear();
-                        setState(() {
-                          _searchResults = [];
-                        });
-                        // Create a focus node that we can use later
-                        final focusNode = FocusNode();
-                        Future.delayed(const Duration(milliseconds: 100), () {
-                          if (mounted) {
-                            _searchController.text = '';
-                            focusNode.requestFocus();
-                          }
-                          // Dispose the focus node to avoid memory leaks
-                          focusNode.dispose();
-                        });
-                      },
-                      icon: const Icon(Icons.search_rounded),
-                      label: const Text('Find Friends'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Connect with Friends',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ).animate()
-                      .fade(duration: const Duration(milliseconds: 600), delay: const Duration(milliseconds: 400))
-                      .slideY(begin: 0.2, end: 0, duration: const Duration(milliseconds: 500)),
-                  ],
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: Text(
+                            'Add friends to challenge each other and stay motivated together!',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            // Focus the search field
+                            FocusScope.of(context).requestFocus(FocusNode());
+                            _searchController.clear();
+                            setState(() {
+                              _searchResults = [];
+                            });
+                            // Create a focus node that we can use later
+                            final focusNode = FocusNode();
+                            Future.delayed(const Duration(milliseconds: 100), () {
+                              if (mounted) {
+                                _searchController.text = '';
+                                focusNode.requestFocus();
+                              }
+                              // Dispose the focus node to avoid memory leaks
+                              focusNode.dispose();
+                            });
+                          },
+                          icon: const Icon(Icons.search_rounded),
+                          label: const Text('Find Friends'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }
@@ -1246,9 +1301,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
           ),
         ),
       ),
-    ).animate()
-      .fade(duration: const Duration(milliseconds: 400))
-      .slideY(begin: 0.1, end: 0, duration: const Duration(milliseconds: 400));
+    );
   }
 
   Widget _buildStatBadge({
