@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:taskswap/utils/error_handler.dart';
 
 /// A widget that wraps the entire app and provides network connectivity awareness
 class NetworkAwareApp extends StatefulWidget {
@@ -80,37 +79,80 @@ class _NetworkAwareAppState extends State<NetworkAwareApp> {
       children: [
         widget.child,
         if (_showBanner)
-          Positioned(
-            top: 0,
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            top: _showBanner ? 0 : -100, // Slide in from top
             left: 0,
             right: 0,
-            child: Material(
-              elevation: 4,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                height: _showBanner ? 40 : 0,
-                color: _isConnected ? Colors.green : Colors.red,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _isConnected ? Icons.wifi : Icons.wifi_off,
-                        color: Colors.white,
-                        size: 16,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Material(
+                  elevation: 2,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: _isConnected
+                          ? [Colors.green.shade300, Colors.green.shade700]
+                          : [Colors.red.shade300, Colors.red.shade700],
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isConnected
-                            ? 'Connected to the internet'
-                            : ErrorHandler.offlineErrorMessage,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                      boxShadow: [
+                        BoxShadow(
+                          color: _isConnected ? Colors.green.withAlpha(40) : Colors.red.withAlpha(40),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Animated icon
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: Icon(
+                            _isConnected ? Icons.wifi : Icons.wifi_off,
+                            key: ValueKey<bool>(_isConnected),
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Animated text
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: Text(
+                            _isConnected
+                                ? 'Connected to the internet'
+                                : 'You are offline',
+                            key: ValueKey<bool>(_isConnected),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        // Dismiss button
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            setState(() {
+                              _showBanner = false;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

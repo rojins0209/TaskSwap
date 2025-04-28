@@ -803,14 +803,18 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
                         return ModernTaskCard(
                           task: task,
                           onTaskUpdated: () {
-                            // Force a rebuild of the task list
-                            setState(() {});
-                            // Notify parent to update task stats
-                            if (widget.onTasksUpdated != null) {
-                              widget.onTasksUpdated!();
-                            }
-                            // Update task counts in Firestore
-                            _updateTaskCounts(incompleteTasks.length - 1, completedTasks.length + 1);
+                            // Use a microtask to avoid multiple rebuilds in the same frame
+                            Future.microtask(() {
+                              if (mounted) {
+                                setState(() {});
+                                // Notify parent to update task stats only once
+                                if (widget.onTasksUpdated != null) {
+                                  widget.onTasksUpdated!();
+                                }
+                                // Update task counts in Firestore
+                                _updateTaskCounts(incompleteTasks.length - 1, completedTasks.length + 1);
+                              }
+                            });
                           },
                         );
                       },
@@ -856,14 +860,18 @@ class _CombinedTaskListState extends State<CombinedTaskList> with SingleTickerPr
                         return ModernTaskCard(
                           task: task,
                           onTaskUpdated: () {
-                            // Force a rebuild of the task list
-                            setState(() {});
-                            // Notify parent to update task stats
-                            if (widget.onTasksUpdated != null) {
-                              widget.onTasksUpdated!();
-                            }
-                            // Update task counts in Firestore
-                            _updateTaskCounts(incompleteTasks.length + 1, completedTasks.length - 1);
+                            // Use a microtask to avoid multiple rebuilds in the same frame
+                            Future.microtask(() {
+                              if (mounted) {
+                                setState(() {});
+                                // Notify parent to update task stats only once
+                                if (widget.onTasksUpdated != null) {
+                                  widget.onTasksUpdated!();
+                                }
+                                // Update task counts in Firestore
+                                _updateTaskCounts(incompleteTasks.length + 1, completedTasks.length - 1);
+                              }
+                            });
                           },
                           isCompletedSection: true,
                         );

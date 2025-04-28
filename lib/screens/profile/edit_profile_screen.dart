@@ -4,7 +4,98 @@ import 'package:taskswap/models/user_model.dart';
 import 'package:taskswap/screens/profile/profile_picture_screen.dart';
 import 'package:taskswap/services/user_service.dart';
 
-import 'package:taskswap/widgets/user_avatar.dart';
+// Custom UserAvatar Widget
+class UserAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final String? displayName;
+  final String? email;
+  final double radius;
+  final bool showBorder;
+  final Color? borderColor;
+  final double? borderWidth;
+  final bool showShadow;
+
+  const UserAvatar({
+    Key? key,
+    this.imageUrl,
+    this.displayName,
+    this.email,
+    this.radius = 40,
+    this.showBorder = false,
+    this.borderColor,
+    this.borderWidth,
+    this.showShadow = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // Get initials from display name or email
+    String initials = '';
+    if (displayName != null && displayName!.isNotEmpty) {
+      final nameParts = displayName!.trim().split(' ');
+      if (nameParts.length > 1) {
+        initials = nameParts[0][0] + nameParts[1][0];
+      } else if (nameParts.isNotEmpty) {
+        initials = nameParts[0][0];
+      }
+    } else if (email != null && email!.isNotEmpty) {
+      initials = email![0].toUpperCase();
+    }
+
+    final avatarWidget = Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: showBorder
+            ? Border.all(
+                color: borderColor ?? colorScheme.primary,
+                width: borderWidth ?? 2,
+              )
+            : null,
+        boxShadow: showShadow
+            ? [
+                BoxShadow(
+                  color: Colors.black.withAlpha(40),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius * 2),
+        child: imageUrl != null && imageUrl!.isNotEmpty
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(initials, colorScheme),
+              )
+            : _buildInitialsAvatar(initials, colorScheme),
+      ),
+    );
+
+    return avatarWidget;
+  }
+
+  Widget _buildInitialsAvatar(String initials, ColorScheme colorScheme) {
+    return Container(
+      color: colorScheme.primary,
+      alignment: Alignment.center,
+      child: Text(
+        initials.toUpperCase(),
+        style: TextStyle(
+          color: colorScheme.onPrimary,
+          fontWeight: FontWeight.bold,
+          fontSize: radius * 0.7,
+        ),
+      ),
+    );
+  }
+}
 
 class EditProfileScreen extends StatefulWidget {
   final UserModel userProfile;
@@ -61,9 +152,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _saveProfile() async {
     final displayName = _displayNameController.text.trim();
 
+    // Validate display name
     if (displayName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a display name')),
+      );
+      return;
+    }
+
+    // Check for special characters that might cause issues
+    final RegExp validNameRegex = RegExp(r'^[a-zA-Z0-9 ._-]+$');
+    if (!validNameRegex.hasMatch(displayName)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Display name can only contain letters, numbers, spaces, and basic punctuation (._-)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Check length
+    if (displayName.length > 30) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Display name must be 30 characters or less'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -81,14 +196,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
+          const SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
-        Navigator.pop(context);
+
+        // Return true to indicate successful update
+        Navigator.pop(context, true);
       }
     } catch (e) {
+      debugPrint('Error updating profile: $e');
+
       if (mounted) {
+        String errorMessage = 'Error updating profile';
+
+        // Provide more specific error messages
+        if (e.toString().contains('permission-denied')) {
+          errorMessage = 'You don\'t have permission to update this profile';
+        } else if (e.toString().contains('network')) {
+          errorMessage = 'Network error. Please check your connection and try again';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating profile: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
