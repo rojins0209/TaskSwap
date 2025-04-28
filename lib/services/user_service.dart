@@ -63,19 +63,47 @@ class UserService {
   // Get user by ID with enhanced caching
   Future<UserModel?> getUserById(String userId) async {
     try {
+      // Validate userId
+      if (userId.isEmpty) {
+        debugPrint('Error: Empty userId passed to getUserById');
+        return null;
+      }
+
       // Check cache first
       final cacheKey = 'user_$userId';
       final cachedData = await CacheService.getFromCache(cacheKey);
 
       if (cachedData != null) {
         debugPrint('Retrieved user $userId from cache');
-        return UserModel.fromMap(cachedData);
+        // Ensure the cached data has the correct ID
+        final userData = Map<String, dynamic>.from(cachedData);
+        if (!userData.containsKey('id') || userData['id'] == null || userData['id'] == '') {
+          userData['id'] = userId; // Ensure ID is set correctly
+        }
+        return UserModel.fromMap(userData);
       }
 
       // If not in cache, get from Firestore
       DocumentSnapshot doc = await _firestore.collection(_collectionPath).doc(userId).get();
       if (doc.exists) {
+        // Create user model with explicit ID
         final user = UserModel.fromFirestore(doc);
+
+        // Verify the user has a valid ID
+        if (user.id.isEmpty) {
+          debugPrint('Warning: User from Firestore has empty ID. Using document ID: $userId');
+          // Create a new user with the correct ID
+          final updatedUser = user.copyWith(id: userId);
+
+          // Save to cache for 1 hour (longer cache time for user data)
+          await CacheService.saveToCache(
+            cacheKey,
+            updatedUser.toMap(),
+            expiry: const Duration(hours: 1)
+          );
+
+          return updatedUser;
+        }
 
         // Save to cache for 1 hour (longer cache time for user data)
         await CacheService.saveToCache(
@@ -110,7 +138,12 @@ class UserService {
         final cachedData = await CacheService.getFromCache(cacheKey);
         if (cachedData != null) {
           debugPrint('Returning expired cached user data due to error');
-          return UserModel.fromMap(cachedData);
+          // Ensure the cached data has the correct ID
+          final userData = Map<String, dynamic>.from(cachedData);
+          if (!userData.containsKey('id') || userData['id'] == null || userData['id'] == '') {
+            userData['id'] = userId; // Ensure ID is set correctly
+          }
+          return UserModel.fromMap(userData);
         }
       } catch (_) {
         // Ignore cache errors

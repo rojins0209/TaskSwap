@@ -24,138 +24,378 @@ class AuraShareCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    // Calculate level based on aura points
+    final int level = (auraPoints / 100).floor() + 1;
+    final int pointsForNextLevel = level * 100;
+    final double progress = (auraPoints % 100) / 100;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            colorScheme.primary,
-            colorScheme.tertiary,
+            HSLColor.fromColor(colorScheme.primary).withLightness(0.4).toColor(),
+            HSLColor.fromColor(colorScheme.tertiary).withLightness(0.3).toColor(),
           ],
+          stops: const [0.2, 0.9],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withAlpha(40),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: colorScheme.shadow.withAlpha(60),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(
+          color: Colors.white.withAlpha(30),
+          width: 1.5,
+        ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          children: [
-            // Background pattern
-            Positioned.fill(
-              child: _buildBackgroundPattern(),
-            ),
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: const ColorFilter.mode(
+            Colors.black12,
+            BlendMode.srcOver,
+          ),
+          child: Stack(
+            children: [
+              // Background pattern
+              Positioned.fill(
+                child: _buildBackgroundPattern(),
+              ),
 
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // User info
-                  Row(
-                    children: [
-                      // Avatar
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Colors.white.withAlpha(50),
-                        backgroundImage: user['photoUrl'] != null && user['photoUrl'].isNotEmpty
-                            ? NetworkImage(user['photoUrl'])
-                            : null,
-                        child: user['photoUrl'] == null || user['photoUrl'].isEmpty
-                            ? Text(
-                                _getInitials(user['displayName'] ?? user['email'] ?? '?'),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 16),
+              // Glowing orb in the background
+              Positioned(
+                top: -50,
+                right: -50,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.white.withAlpha(80),
+                        Colors.white.withAlpha(0),
+                      ],
+                      stops: const [0.1, 1.0],
+                    ),
+                  ),
+                ),
+              ),
 
-                      // User name and title
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header with logo and level
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // App logo
+                        Row(
                           children: [
+                            Icon(
+                              Icons.auto_awesome,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
                             Text(
-                              user['displayName'] ?? user['email'] ?? 'Anonymous',
-                              style: const TextStyle(
+                              'TaskSwap',
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _getUserTitle(auraPoints),
-                              style: TextStyle(
-                                color: Colors.white.withAlpha(200),
-                                fontSize: 14,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
 
-                  const SizedBox(height: 24),
-
-                  // Stats
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatItem(
-                        icon: Icons.auto_awesome,
-                        value: auraPoints.toString(),
-                        label: 'Aura Points',
-                      ),
-                      _buildStatItem(
-                        icon: Icons.task_alt,
-                        value: completedTasks.toString(),
-                        label: 'Tasks Done',
-                      ),
-                      _buildStatItem(
-                        icon: Icons.local_fire_department,
-                        value: streakCount.toString(),
-                        label: 'Day Streak',
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Aura breakdown
-                  const Text(
-                    'Aura Breakdown',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                        // Level badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(30),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withAlpha(50),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.stars,
+                                color: Colors.amber,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Level $level',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
 
-                  // Breakdown bars
-                  ..._buildBreakdownBars(auraBreakdown),
-                ],
+                    const SizedBox(height: 24),
+
+                    // User info with avatar
+                    Row(
+                      children: [
+                        // Avatar with glow effect
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: colorScheme.primary.withAlpha(100),
+                                blurRadius: 15,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 36,
+                            backgroundColor: Colors.white.withAlpha(50),
+                            backgroundImage: user['photoUrl'] != null && user['photoUrl'].isNotEmpty
+                                ? NetworkImage(user['photoUrl'])
+                                : null,
+                            child: user['photoUrl'] == null || user['photoUrl'].isEmpty
+                                ? Text(
+                                    _getInitials(user['displayName'] ?? user['email'] ?? '?'),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+
+                        // User name and title
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user['displayName'] ?? user['email'] ?? 'Anonymous',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getTitleColor(auraPoints).withAlpha(50),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _getTitleColor(auraPoints).withAlpha(100),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _getUserTitle(auraPoints),
+                                      style: TextStyle(
+                                        color: _getTitleColor(auraPoints),
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  if (streakCount >= 3) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withAlpha(50),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.orange.withAlpha(100),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.local_fire_department,
+                                            color: Colors.orange,
+                                            size: 14,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '$streakCount',
+                                            style: TextStyle(
+                                              color: Colors.orange,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Level progress
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Progress to Level ${level + 1}',
+                              style: TextStyle(
+                                color: Colors.white.withAlpha(220),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '$auraPoints / $pointsForNextLevel',
+                              style: TextStyle(
+                                color: Colors.white.withAlpha(220),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Stack(
+                          children: [
+                            // Background
+                            Container(
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(30),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            // Progress
+                            FractionallySizedBox(
+                              widthFactor: progress,
+                              child: Container(
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.amber,
+                                      Colors.orange,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.amber.withAlpha(100),
+                                      blurRadius: 6,
+                                      spreadRadius: 0,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Stats cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.auto_awesome,
+                            value: auraPoints.toString(),
+                            label: 'Aura Points',
+                            color: Colors.amber,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.task_alt,
+                            value: completedTasks.toString(),
+                            label: 'Tasks Done',
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Aura breakdown
+                    Text(
+                      'Aura Breakdown',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Breakdown bars with animation
+                    ..._buildBreakdownBars(auraBreakdown),
+
+                    // Footer with timestamp
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        'Generated on ${DateTime.now().toString().split(' ')[0]}',
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(150),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ).animate().fadeIn(duration: const Duration(milliseconds: 500));
+    )
+    .animate()
+    .fadeIn(duration: const Duration(milliseconds: 600))
+    .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: const Duration(milliseconds: 500), curve: Curves.easeOutBack);
   }
 
   Widget _buildBackgroundPattern() {
@@ -164,37 +404,64 @@ class AuraShareCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem({
+  Widget _buildStatCard({
     required IconData icon,
     required String value,
     required String label,
+    required Color color,
   }) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: Colors.white,
-          size: 24,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(20),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withAlpha(40),
+          width: 1,
         ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withAlpha(30),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withAlpha(180),
-            fontSize: 12,
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withAlpha(180),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Color _getTitleColor(int points) {
+    if (points >= 1000) return Colors.purple;
+    if (points >= 500) return Colors.blue;
+    if (points >= 250) return Colors.green;
+    if (points >= 100) return Colors.amber;
+    return Colors.white;
   }
 
   List<Widget> _buildBreakdownBars(Map<String, int> breakdown) {
@@ -204,56 +471,173 @@ class AuraShareCard extends StatelessWidget {
 
     // Get total for percentage calculation
     final int total = breakdown.values.fold(0, (sum, value) => sum + value);
-    if (total == 0) return [const Text('No data available', style: TextStyle(color: Colors.white70))];
+    if (total == 0) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(20),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Center(
+            child: Text(
+              'No task data available yet.\nComplete tasks to see your aura breakdown!',
+              style: TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        )
+      ];
+    }
+
+    // For animation delay calculation
+    int index = 0;
 
     for (final entry in sortedEntries) {
       final double percentage = total > 0 ? entry.value / total : 0;
       final String categoryName = entry.key;
       final Color categoryColor = _getCategoryColor(categoryName);
+      final int count = entry.value;
+
+      // Calculate animation delay based on index
+      final int delayMs = 100 + (index * 50);
 
       bars.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
+                  // Category icon
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: categoryColor.withAlpha(40),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(categoryName),
+                      color: categoryColor,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Category name
                   Text(
                     categoryName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    '${(percentage * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+
+                  // Count and percentage
+                  Row(
+                    children: [
+                      Text(
+                        count.toString(),
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(200),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '(${(percentage * 100).toStringAsFixed(0)}%)',
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(150),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Progress bar with animation
+              Stack(
+                children: [
+                  // Background
+                  Container(
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(20),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+
+                  // Animated progress
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutQuart,
+                    height: 10,
+                    width: percentage * 300, // Fixed width based on percentage
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          categoryColor.withAlpha(200),
+                          categoryColor,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: categoryColor.withAlpha(60),
+                          blurRadius: 4,
+                          spreadRadius: 0,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: percentage,
-                  backgroundColor: Colors.white.withAlpha(50),
-                  valueColor: AlwaysStoppedAnimation<Color>(categoryColor),
-                  minHeight: 8,
-                ),
-              ),
             ],
           ),
+        ).animate().fadeIn(
+          duration: const Duration(milliseconds: 400),
+          delay: Duration(milliseconds: delayMs),
+        ).slideX(
+          begin: 0.1,
+          end: 0,
+          duration: const Duration(milliseconds: 400),
+          delay: Duration(milliseconds: delayMs),
+          curve: Curves.easeOutQuad,
         ),
       );
+
+      index++;
     }
 
     return bars;
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'work':
+        return Icons.work;
+      case 'health':
+        return Icons.favorite;
+      case 'learning':
+        return Icons.school;
+      case 'personal':
+        return Icons.person;
+      case 'gym':
+        return Icons.fitness_center;
+      case 'meditation':
+        return Icons.self_improvement;
+      case 'reading':
+        return Icons.menu_book;
+      case 'challenge':
+        return Icons.emoji_events;
+      default:
+        return Icons.category;
+    }
   }
 
   String _getInitials(String name) {

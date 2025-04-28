@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:taskswap/services/user_service.dart';
 
 class UserModel {
@@ -67,6 +68,10 @@ class UserModel {
   // Create a UserModel object from a Firestore document
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    // Ensure the document ID is not empty
+    if (doc.id.isEmpty) {
+      debugPrint('Warning: Empty document ID in UserModel.fromFirestore');
+    }
     return UserModel.fromMap(data, id: doc.id);
   }
 
