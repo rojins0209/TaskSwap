@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:taskswap/models/user_model.dart';
 import 'package:taskswap/services/aura_share_service.dart';
 
@@ -22,7 +27,7 @@ class AuraShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     // Calculate level based on aura points
     final int level = (auraPoints / 100).floor() + 1;
@@ -30,57 +35,87 @@ class AuraShareCard extends StatelessWidget {
     final double progress = (auraPoints % 100) / 100;
 
     return Card(
-      elevation: 4,
+      elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary,
-              Color.alphaBlend(Colors.black.withOpacity(0.2), colorScheme.primary),
-            ],
-          ),
+          color: Colors.black,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(60),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with app name and date
+              // Header with app logo and level badge
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // App logo
                   Row(
                     children: [
-                      Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                        size: 18,
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(20),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Text(
                         'TaskSwap',
-                        style: TextStyle(
+                        style: textTheme.titleMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
                         ),
                       ),
                     ],
                   ),
 
-                  // Date
-                  Text(
-                    DateTime.now().toString().split(' ')[0],
-                    style: TextStyle(
-                      color: Colors.white.withAlpha(204), // ~0.8 opacity
-                      fontSize: 12,
+                  // Level badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.amber.shade700,
+                          Colors.amber.shade300,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.stars,
+                          color: Colors.black,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'LVL $level',
+                          style: textTheme.labelMedium?.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -91,23 +126,31 @@ class AuraShareCard extends StatelessWidget {
               // User info with avatar
               Row(
                 children: [
-                  // Avatar
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white.withAlpha(51), // ~0.2 opacity
-                    backgroundImage: user['photoUrl'] != null && user['photoUrl'].isNotEmpty
-                        ? NetworkImage(user['photoUrl'])
-                        : null,
-                    child: user['photoUrl'] == null || user['photoUrl'].isEmpty
-                        ? Text(
-                            _getInitials(user['displayName'] ?? user['email'] ?? '?'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                          )
-                        : null,
+                  // Avatar with border
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.amber.shade300,
+                        width: 2,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.grey.shade900,
+                      backgroundImage: user['photoUrl'] != null && user['photoUrl'].isNotEmpty
+                          ? NetworkImage(user['photoUrl'])
+                          : null,
+                      child: user['photoUrl'] == null || user['photoUrl'].isEmpty
+                          ? Text(
+                              _getInitials(user['displayName'] ?? user['email'] ?? '?'),
+                              style: textTheme.headlineSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                   const SizedBox(width: 16),
 
@@ -118,10 +161,9 @@ class AuraShareCard extends StatelessWidget {
                       children: [
                         Text(
                           user['displayName'] ?? user['email'] ?? 'Anonymous',
-                          style: const TextStyle(
+                          style: textTheme.titleLarge?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 18,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -129,26 +171,47 @@ class AuraShareCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text(
-                              _getUserTitle(auraPoints),
-                              style: TextStyle(
-                                color: Colors.white.withAlpha(230), // ~0.9 opacity
-                                fontSize: 14,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade800,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _getUserTitle(auraPoints),
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                             if (streakCount > 0) ...[
                               const SizedBox(width: 8),
-                              Icon(
-                                Icons.local_fire_department,
-                                color: Colors.orange,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                '$streakCount day streak',
-                                style: TextStyle(
-                                  color: Colors.orange,
-                                  fontSize: 14,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.deepOrange.withAlpha(40),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.deepOrange.withAlpha(100),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.local_fire_department,
+                                      color: Colors.deepOrange,
+                                      size: 12,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '$streakCount',
+                                      style: textTheme.labelSmall?.copyWith(
+                                        color: Colors.deepOrange,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -161,8 +224,9 @@ class AuraShareCard extends StatelessWidget {
               ),
 
               const Divider(
-                color: Colors.white24,
+                color: Colors.grey,
                 height: 30,
+                thickness: 0.5,
               ),
 
               // Stats row
@@ -172,17 +236,20 @@ class AuraShareCard extends StatelessWidget {
                   _buildStatItem(
                     icon: Icons.auto_awesome,
                     value: auraPoints.toString(),
-                    label: 'Aura',
+                    label: 'AURA',
+                    color: Colors.amber,
                   ),
                   _buildStatItem(
                     icon: Icons.task_alt,
                     value: completedTasks.toString(),
-                    label: 'Tasks',
+                    label: 'TASKS',
+                    color: Colors.green,
                   ),
                   _buildStatItem(
-                    icon: Icons.stars,
-                    value: 'Lv $level',
-                    label: 'Level',
+                    icon: Icons.local_fire_department,
+                    value: streakCount.toString(),
+                    label: 'STREAK',
+                    color: Colors.deepOrange,
                   ),
                 ],
               ),
@@ -197,17 +264,16 @@ class AuraShareCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Next Level',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                        'NEXT LEVEL',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: Colors.grey.shade400,
+                          letterSpacing: 1.2,
                         ),
                       ),
                       Text(
-                        '$auraPoints / $pointsForNextLevel',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                        '$auraPoints/$pointsForNextLevel',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: Colors.grey.shade400,
                         ),
                       ),
                     ],
@@ -217,9 +283,9 @@ class AuraShareCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: progress,
-                      backgroundColor: Colors.white24,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      minHeight: 8,
+                      backgroundColor: Colors.grey.shade800,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+                      minHeight: 6,
                     ),
                   ),
                 ],
@@ -229,11 +295,11 @@ class AuraShareCard extends StatelessWidget {
 
               // Aura breakdown
               Text(
-                'Aura Breakdown',
-                style: TextStyle(
-                  color: Colors.white,
+                'AURA BREAKDOWN',
+                style: textTheme.labelSmall?.copyWith(
+                  color: Colors.grey.shade400,
+                  letterSpacing: 1.2,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
                 ),
               ),
               const SizedBox(height: 12),
@@ -241,14 +307,14 @@ class AuraShareCard extends StatelessWidget {
               // Simple breakdown bars
               ..._buildSimpleBreakdownBars(auraBreakdown),
 
-              // Footer
+              // Date footer
               const SizedBox(height: 16),
               Center(
                 child: Text(
-                  'Share your progress with friends!',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
+                  DateTime.now().toString().split(' ')[0],
+                  style: textTheme.labelSmall?.copyWith(
+                    color: Colors.grey.shade600,
+                    fontSize: 10,
                   ),
                 ),
               ),
@@ -263,13 +329,14 @@ class AuraShareCard extends StatelessWidget {
     required IconData icon,
     required String value,
     required String label,
+    required Color color,
   }) {
     return Column(
       children: [
         Icon(
           icon,
-          color: Colors.white,
-          size: 22,
+          color: color,
+          size: 20,
         ),
         const SizedBox(height: 6),
         Text(
@@ -284,8 +351,10 @@ class AuraShareCard extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
+            color: Colors.grey.shade500,
+            fontSize: 10,
+            letterSpacing: 1,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -304,13 +373,17 @@ class AuraShareCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white10,
+            color: Colors.grey.shade900,
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Colors.grey.shade800,
+              width: 1,
+            ),
           ),
           child: const Center(
             child: Text(
               'Complete tasks to see your aura breakdown',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ),
@@ -318,51 +391,87 @@ class AuraShareCard extends StatelessWidget {
       ];
     }
 
+    // Define category colors
+    final Map<String, Color> categoryColors = {
+      'Work': Colors.blue,
+      'Health': Colors.green,
+      'Learning': Colors.purple,
+      'Personal': Colors.orange,
+      'Gym': Colors.red,
+      'Meditation': Colors.teal,
+      'Reading': Colors.indigo,
+      'Challenge': Colors.amber,
+    };
+
     for (final entry in sortedEntries.take(4)) { // Limit to top 4 categories
       final double percentage = total > 0 ? entry.value / total : 0;
       final String categoryName = entry.key;
-      // Value is already used in percentage calculation
+      final Color categoryColor = categoryColors[categoryName] ?? Colors.grey;
 
       bars.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(
-                    _getCategoryIcon(categoryName),
-                    color: Colors.white,
-                    size: 14,
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: categoryColor.withAlpha(50),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(categoryName),
+                      color: categoryColor,
+                      size: 12,
+                    ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Text(
-                    categoryName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
+                    categoryName.toUpperCase(),
+                    style: TextStyle(
+                      color: Colors.grey.shade300,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     '${(percentage * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
+                    style: TextStyle(
+                      color: categoryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: percentage,
-                  backgroundColor: Colors.white10,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                  minHeight: 6,
-                ),
+              const SizedBox(height: 6),
+              Stack(
+                children: [
+                  // Background
+                  Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade900,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Progress
+                  FractionallySizedBox(
+                    widthFactor: percentage,
+                    child: Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: categoryColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -414,8 +523,6 @@ class AuraShareCard extends StatelessWidget {
     if (points >= 100) return 'Aura Apprentice';
     return 'Aura Novice';
   }
-
-
 }
 
 // Pattern Painter for background
@@ -470,7 +577,9 @@ class AuraShareScreen extends StatefulWidget {
 
 class _AuraShareScreenState extends State<AuraShareScreen> {
   final AuraShareService _auraShareService = AuraShareService();
+  final ScreenshotController _screenshotController = ScreenshotController();
   bool _isLoading = true;
+  bool _isSharing = false;
   String _errorMessage = '';
   Map<String, dynamic>? _auraData;
 
@@ -556,12 +665,15 @@ class _AuraShareScreenState extends State<AuraShareScreen> {
         };
       }
 
-      return AuraShareCard(
-        user: userMap,
-        auraPoints: _auraData!['auraPoints'] ?? 0,
-        completedTasks: _auraData!['completedTasks'] ?? 0,
-        streakCount: _auraData!['streakCount'] ?? 0,
-        auraBreakdown: auraBreakdown,
+      return Screenshot(
+        controller: _screenshotController,
+        child: AuraShareCard(
+          user: userMap,
+          auraPoints: _auraData!['auraPoints'] ?? 0,
+          completedTasks: _auraData!['completedTasks'] ?? 0,
+          streakCount: _auraData!['streakCount'] ?? 0,
+          auraBreakdown: auraBreakdown,
+        ),
       );
     } catch (e) {
       debugPrint('Error building aura card: $e');
@@ -656,6 +768,26 @@ class _AuraShareScreenState extends State<AuraShareScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          _isSharing
+              ? Container(
+                  margin: const EdgeInsets.all(8),
+                  width: 40,
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(Icons.share, color: colorScheme.primary),
+                  onPressed: _shareAuraCard,
+                  tooltip: 'Share',
+                ),
           IconButton(
             icon: Icon(Icons.refresh, color: colorScheme.primary),
             onPressed: _loadAuraData,
@@ -834,5 +966,75 @@ class _AuraShareScreenState extends State<AuraShareScreen> {
         ),
       ],
     );
+  }
+
+  /// Share the aura card directly with others
+  Future<void> _shareAuraCard() async {
+    if (_auraData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No aura data available to share')),
+      );
+      return;
+    }
+
+    try {
+      // Show loading indicator
+      setState(() {
+        _isSharing = true;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preparing aura card for sharing...')),
+        );
+      }
+
+      // Capture the screenshot
+      final Uint8List? imageBytes = await _screenshotController.capture();
+      if (imageBytes == null) {
+        throw Exception('Failed to capture screenshot');
+      }
+
+      // Save the image to a temporary file
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/aura_card_${DateTime.now().millisecondsSinceEpoch}.png');
+      await file.writeAsBytes(imageBytes);
+
+      // Generate text to share
+      final userName = _auraData!['user'] is Map ?
+          (_auraData!['user']['displayName'] ?? 'My') : 'My';
+      final auraPoints = _auraData!['auraPoints'] ?? 0;
+      final completedTasks = _auraData!['completedTasks'] ?? 0;
+      final streakCount = _auraData!['streakCount'] ?? 0;
+
+      final shareText = 'Check out $userName TaskSwap aura card!\n'
+          '🌟 $auraPoints Aura Points\n'
+          '✅ $completedTasks Tasks Completed\n'
+          '${streakCount > 0 ? '🔥 $streakCount Day Streak\n' : ''}'
+          'Join TaskSwap to track your productivity and compete with friends!';
+
+      // Share the image using SharePlus
+      await SharePlus.instance.share(
+        ShareParams(
+          text: shareText,
+          subject: 'My TaskSwap Aura Card',
+          files: [XFile(file.path)],
+        ),
+      );
+
+    } catch (e) {
+      debugPrint('Error sharing aura card: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing aura card: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSharing = false;
+        });
+      }
+    }
   }
 }
