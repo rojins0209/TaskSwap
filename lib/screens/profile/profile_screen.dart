@@ -10,8 +10,6 @@ import 'package:taskswap/screens/settings/help_support_screen.dart';
 import 'package:taskswap/screens/settings/notification_settings_screen.dart';
 import 'package:taskswap/screens/profile/aura_share_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:taskswap/widgets/app_header.dart';
-import 'package:taskswap/widgets/user_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -36,20 +34,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Consistent app header
-            AppHeader(
-              title: 'Profile',
-              titleFontSize: 32,
-              leadingIcon: Icons.person,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  tooltip: 'Edit Profile',
-                  onPressed: () {
-                    _navigateToEditProfile(user!.uid);
-                  },
-                ),
-              ],
+            // Custom header implementation
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Profile',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 32,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    tooltip: 'Edit Profile',
+                    onPressed: () {
+                      _navigateToEditProfile(user!.uid);
+                    },
+                  ),
+                ],
+              ),
             ),
 
             // Main content
@@ -137,15 +152,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    // Custom avatar implementation
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
         // Avatar
-        UserAvatar(
-          imageUrl: userProfile?.photoUrl,
-          displayName: userProfile?.displayName,
-          email: user?.email,
+        CircleAvatar(
           radius: 60,
+          backgroundColor: colorScheme.primaryContainer,
+          backgroundImage: userProfile?.photoUrl != null && userProfile!.photoUrl!.isNotEmpty
+              ? NetworkImage(userProfile.photoUrl!)
+              : null,
+          child: userProfile?.photoUrl == null || userProfile!.photoUrl!.isEmpty
+              ? Icon(
+                  Icons.person,
+                  size: 60,
+                  color: colorScheme.primary,
+                )
+              : null,
         ),
 
         // Aura Points Badge
@@ -340,14 +364,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _navigateToEditProfile(String userId) async {
-    final userProfile = await _userService.getUserById(userId);
-    if (userProfile != null && mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EditProfileScreen(userProfile: userProfile),
-        ),
-      );
+    try {
+      // Validate userId
+      if (userId.isEmpty) {
+        throw ArgumentError('User ID is empty');
+      }
+
+      final userProfile = await _userService.getUserById(userId);
+      if (userProfile != null && mounted) {
+        // Ensure the user profile has a valid ID
+        if (userProfile.id.isEmpty) {
+          throw ArgumentError('User profile has empty ID');
+        }
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditProfileScreen(userProfile: userProfile),
+          ),
+        );
+      } else {
+        // Show error if user profile couldn't be loaded
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not load user profile. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error navigating to edit profile: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -464,6 +520,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           },
         ),
+
         _buildSettingsItem(
           icon: Icons.lock_outline,
           title: 'Privacy & Security',

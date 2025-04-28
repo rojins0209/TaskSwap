@@ -420,8 +420,23 @@ class _AuraShareScreenState extends State<AuraShareScreen> {
       }
 
       // Return the actual card with safely extracted data
+      Map<String, dynamic> userMap;
+
+      // Handle the user data safely
+      if (_auraData!['user'] is Map) {
+        userMap = Map<String, dynamic>.from(_auraData!['user']);
+      } else {
+        // Fallback user data if the user object is not a Map
+        userMap = {
+          'displayName': 'User',
+          'email': 'user@example.com',
+          'photoUrl': null,
+          'id': '',
+        };
+      }
+
       return AuraShareCard(
-        user: _auraData!['user'] ?? {'displayName': 'User', 'email': 'user@example.com'},
+        user: userMap,
         auraPoints: _auraData!['auraPoints'] ?? 0,
         completedTasks: _auraData!['completedTasks'] ?? 0,
         streakCount: _auraData!['streakCount'] ?? 0,

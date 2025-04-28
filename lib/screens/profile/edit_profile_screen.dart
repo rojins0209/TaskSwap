@@ -114,11 +114,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _displayNameController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isProfileValid = true;
+  String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _displayNameController.text = widget.userProfile.displayName ?? '';
+
+    // Validate the user profile
+    if (widget.userProfile.id.isEmpty) {
+      setState(() {
+        _isProfileValid = false;
+        _errorMessage = 'Invalid user profile: Empty user ID';
+      });
+      debugPrint('Invalid user profile: Empty user ID');
+    } else {
+      _displayNameController.text = widget.userProfile.displayName ?? '';
+    }
   }
 
   @override
@@ -261,97 +273,146 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: colorScheme.surface,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
-
-            // Profile Avatar (editable)
-            GestureDetector(
-              onTap: _openProfilePictureScreen,
-              child: Stack(
-                alignment: Alignment.bottomRight,
+      body: !_isProfileValid
+          ? _buildErrorView(colorScheme)
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  UserAvatar(
-                    imageUrl: widget.userProfile.photoUrl,
-                    displayName: widget.userProfile.displayName,
-                    email: widget.userProfile.email,
-                    radius: 60,
-                    showShadow: true,
-                    showBorder: true,
-                    borderColor: theme.brightness == Brightness.dark ? colorScheme.surfaceContainerHighest : Colors.white,
-                    borderWidth: 3,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(40),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                  const SizedBox(height: 20),
+
+                  // Profile Avatar (editable)
+                  GestureDetector(
+                    onTap: _openProfilePictureScreen,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        UserAvatar(
+                          imageUrl: widget.userProfile.photoUrl,
+                          displayName: widget.userProfile.displayName,
+                          email: widget.userProfile.email,
+                          radius: 60,
+                          showShadow: true,
+                          showBorder: true,
+                          borderColor: theme.brightness == Brightness.dark ? colorScheme.surfaceContainerHighest : Colors.white,
+                          borderWidth: 3,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(40),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.photo_camera,
+                            color: colorScheme.onPrimary,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.photo_camera,
-                      color: colorScheme.onPrimary,
-                      size: 20,
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Display Name Field
+                  TextField(
+                    controller: _displayNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Display Name',
+                      hintText: 'Enter your name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.person),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Save Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.onPrimary,
+                              ),
+                            )
+                          : Text(
+                              'Save Profile',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],
               ),
             ),
+    );
+  }
 
-            const SizedBox(height: 32),
-
-            // Display Name Field
-            TextField(
-              controller: _displayNameController,
-              decoration: InputDecoration(
-                labelText: 'Display Name',
-                hintText: 'Enter your name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.person),
+  Widget _buildErrorView(ColorScheme colorScheme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: colorScheme.error,
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Profile Error',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Save Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: _isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colorScheme.onPrimary,
-                        ),
-                      )
-                    : Text(
-                        'Save Profile',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Go Back'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
